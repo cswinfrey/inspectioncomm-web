@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { SignupForm } from '@/app/components/SignupForm';
 
 export default function Home() {
   return (
@@ -25,22 +26,10 @@ export default function Home() {
         </p>
         <p className="text-gray-400 mb-12 leading-relaxed">
           Get comprehensive vehicle inspections with detailed photo documentation and instant reports. 
-          We're here to help you make informed decisions before your next car purchase.
+          We&apos;re here to help you make informed decisions before your next car purchase.
         </p>
         
-        <form className="flex gap-2 justify-center flex-wrap">
-          <input
-            type="email"
-            placeholder="Enter your email"
-            className="px-4 py-3 rounded bg-white text-slate-900 placeholder-gray-500 focus:outline-none min-w-64"
-          />
-          <button
-            type="submit"
-            className="px-6 py-3 bg-blue-600 text-white rounded font-semibold hover:bg-blue-700 whitespace-nowrap"
-          >
-            Notify Me
-          </button>
-        </form>
+        <SignupForm />
 
         <p className="text-gray-500 text-sm mt-8">
           Serving Atlanta, Marietta, Sandy Springs, Roswell, and surrounding areas

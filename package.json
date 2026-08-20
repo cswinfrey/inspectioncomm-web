@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@azure/identity": "^4.13.1",
+    "@azure/keyvault-secrets": "^4.11.2",
     "@azure/storage-blob": "^12.33.0",
     "@supabase/supabase-js": "^2.110.9",
     "next": "16.2.12",

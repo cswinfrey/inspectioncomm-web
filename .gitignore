@@ -36,6 +36,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# private infrastructure scripts (not for version control)
+/private
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+.env*
