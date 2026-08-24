@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireInspector } from '@/lib/supabase/require-inspector';
 import { UploadMedia } from './UploadMedia';
+import { StatusToggle } from './StatusToggle';
 
 export default async function InspectionDetailPage({
   params,
@@ -9,10 +10,11 @@ export default async function InspectionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { supabase } = await requireInspector();
+  const { supabase, user } = await requireInspector();
 
   type InspectionDetailRow = {
     id: string;
+    inspector_id: string;
     inspection_type: string;
     status: string;
     notes: string | null;
@@ -28,7 +30,7 @@ export default async function InspectionDetailPage({
   const { data: inspection } = await supabase
     .from('inspections')
     .select(
-      'id, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, customers(name, email)'
+      'id, inspector_id, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, customers(name, email)'
     )
     .eq('id', id)
     .single()
@@ -51,9 +53,14 @@ export default async function InspectionDetailPage({
           &larr; Back to dashboard
         </Link>
 
-        <h1 className="text-2xl font-bold text-white mt-4 mb-1">
-          {inspection.vehicle_year} {inspection.vehicle_make} {inspection.vehicle_model}
-        </h1>
+        <div className="flex items-start justify-between mt-4 mb-1">
+          <h1 className="text-2xl font-bold text-white">
+            {inspection.vehicle_year} {inspection.vehicle_make} {inspection.vehicle_model}
+          </h1>
+          {inspection.inspector_id === user.id && (
+            <StatusToggle inspectionId={id} status={inspection.status} />
+          )}
+        </div>
         <p className="text-gray-400 mb-8">
           {inspection.customers?.name} &middot; {inspection.inspection_date} &middot;{' '}
           {inspection.status}

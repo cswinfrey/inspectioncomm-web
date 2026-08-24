@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { requireInspector } from '@/lib/supabase/require-inspector';
 import { AddInspectorForm } from './AddInspectorForm';
 import { InspectorRow } from './InspectorRow';
+import { FilterBar } from '@/app/inspector/FilterBar';
+import { parseInspectionFilters } from '@/lib/inspections-filters';
 
 type InspectorListRow = {
   id: string;
@@ -24,8 +26,13 @@ type InspectionRow = {
   inspectors: { name: string } | null;
 };
 
-export default async function ManagerPage() {
+export default async function ManagerPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { supabase, user, inspector } = await requireInspector();
+  const filters = parseInspectionFilters(await searchParams);
 
   if (inspector?.role !== 'manager') {
     redirect('/inspector/dashboard');
@@ -38,17 +45,41 @@ export default async function ManagerPage() {
     .order('name')
     .returns<InspectorListRow[]>();
 
+  const inspectionColumns =
+    'id, vehicle_year, vehicle_make, vehicle_model, inspection_date, status, created_at, customers(name), inspectors(name)';
+
+  // Reporting (stats + by-inspector breakdown) always reflects the full,
+  // unfiltered dataset — only the "All inspections" list below is filtered,
+  // so the two don't visually contradict each other.
+  const { data: allInspections } = await supabase
+    .from('inspections')
+    .select(inspectionColumns)
+    .returns<InspectionRow[]>();
+
   // Relies on the "Managers view all inspections" RLS policy — no manual
   // inspector_id filter here, unlike the personal dashboard.
-  const { data: inspections } = await supabase
-    .from('inspections')
-    .select(
-      'id, vehicle_year, vehicle_make, vehicle_model, inspection_date, status, created_at, customers(name), inspectors(name)'
-    )
+  let filteredQuery = supabase.from('inspections').select(inspectionColumns);
+  if (filters.q) {
+    filteredQuery = filteredQuery.textSearch('search_text', filters.q, {
+      type: 'websearch',
+      config: 'english',
+    });
+  }
+  if (filters.status && filters.status !== 'all') {
+    filteredQuery = filteredQuery.eq('status', filters.status);
+  }
+  if (filters.from) {
+    filteredQuery = filteredQuery.gte('inspection_date', filters.from);
+  }
+  if (filters.to) {
+    filteredQuery = filteredQuery.lte('inspection_date', filters.to);
+  }
+  const { data: filteredInspections } = await filteredQuery
     .order('created_at', { ascending: false })
     .returns<InspectionRow[]>();
 
-  const rows = inspections ?? [];
+  const rows = allInspections ?? [];
+  const filteredRows = filteredInspections ?? [];
 
   const perInspector = new Map<string, number>();
   let thisMonthCount = 0;
@@ -118,9 +149,10 @@ export default async function ManagerPage() {
         </ul>
 
         <h2 className="text-lg font-semibold text-white mb-2">All inspections</h2>
-        {rows.length > 0 ? (
+        <FilterBar action="/inspector/manager" filters={filters} />
+        {filteredRows.length > 0 ? (
           <ul className="flex flex-col gap-2">
-            {rows.map((inspection) => (
+            {filteredRows.map((inspection) => (
               <li key={inspection.id}>
                 <Link
                   href={`/inspector/inspections/${inspection.id}`}
@@ -142,7 +174,11 @@ export default async function ManagerPage() {
             ))}
           </ul>
         ) : (
-          <p className="text-gray-500 text-sm">No inspections yet.</p>
+          <p className="text-gray-500 text-sm">
+            {filters.q || filters.status || filters.from || filters.to
+              ? 'No inspections match those filters.'
+              : 'No inspections yet.'}
+          </p>
         )}
       </div>
     </main>

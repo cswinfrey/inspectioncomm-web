@@ -1,9 +1,16 @@
 import Link from 'next/link';
 import { requireInspector } from '@/lib/supabase/require-inspector';
 import { logout } from '@/app/inspector/actions';
+import { FilterBar } from '@/app/inspector/FilterBar';
+import { parseInspectionFilters } from '@/lib/inspections-filters';
 
-export default async function InspectorDashboardPage() {
+export default async function InspectorDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { supabase, user, inspector } = await requireInspector();
+  const filters = parseInspectionFilters(await searchParams);
 
   type InspectionListRow = {
     id: string;
@@ -19,10 +26,25 @@ export default async function InspectorDashboardPage() {
   // "my inspections", not the manager's all-inspectors view at /manager.
   // Managers also match the broader "Managers view all inspections" RLS
   // policy, so without this filter they'd see everyone's rows here too.
-  const { data: inspections } = await supabase
+  let query = supabase
     .from('inspections')
     .select('id, vehicle_year, vehicle_make, vehicle_model, inspection_date, status, customers(name)')
-    .eq('inspector_id', user.id)
+    .eq('inspector_id', user.id);
+
+  if (filters.q) {
+    query = query.textSearch('search_text', filters.q, { type: 'websearch', config: 'english' });
+  }
+  if (filters.status && filters.status !== 'all') {
+    query = query.eq('status', filters.status);
+  }
+  if (filters.from) {
+    query = query.gte('inspection_date', filters.from);
+  }
+  if (filters.to) {
+    query = query.lte('inspection_date', filters.to);
+  }
+
+  const { data: inspections } = await query
     .order('created_at', { ascending: false })
     .returns<InspectionListRow[]>();
 
@@ -66,6 +88,8 @@ export default async function InspectorDashboardPage() {
           </div>
         </div>
 
+        <FilterBar action="/inspector/dashboard" filters={filters} />
+
         {inspections && inspections.length > 0 ? (
           <ul className="flex flex-col gap-2">
             {inspections.map((inspection) => (
@@ -89,7 +113,11 @@ export default async function InspectorDashboardPage() {
             ))}
           </ul>
         ) : (
-          <p className="text-gray-500 text-sm">No inspections yet.</p>
+          <p className="text-gray-500 text-sm">
+            {filters.q || filters.status || filters.from || filters.to
+              ? 'No inspections match those filters.'
+              : 'No inspections yet.'}
+          </p>
         )}
       </div>
     </main>

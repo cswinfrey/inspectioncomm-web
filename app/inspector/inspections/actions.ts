@@ -1,6 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 
 export type CreateInspectionState = {
@@ -79,4 +80,37 @@ export async function createInspection(
   }
 
   redirect(`/inspector/inspections/${inspection.id}`);
+}
+
+export type StatusResult = { ok: true } | { ok: false; error: string };
+
+export async function setInspectionStatus(
+  inspectionId: string,
+  status: 'in_progress' | 'completed'
+): Promise<StatusResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, error: 'Not authenticated.' };
+  }
+
+  const { error } = await supabase
+    .from('inspections')
+    .update({
+      status,
+      completed_at: status === 'completed' ? new Date().toISOString() : null,
+    })
+    .eq('id', inspectionId);
+
+  if (error) {
+    return { ok: false, error: 'Could not update status.' };
+  }
+
+  revalidatePath(`/inspector/inspections/${inspectionId}`);
+  revalidatePath('/inspector/dashboard');
+  revalidatePath('/inspector/manager');
+  return { ok: true };
 }

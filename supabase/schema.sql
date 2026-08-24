@@ -307,3 +307,40 @@ create policy "Managers view all inspection media"
   on public.inspection_media for select
   to authenticated
   using (public.is_manager());
+
+-- Full-text search: keeps inspections.search_text (already existed from the
+-- pre-existing schema) up to date from vehicle info, type, notes, and the
+-- linked customer's name.
+create or replace function public.update_inspection_search_text()
+returns trigger
+language plpgsql
+as $$
+declare
+  customer_name text;
+begin
+  select name into customer_name from public.customers where id = new.customer_id;
+  new.search_text := to_tsvector(
+    'english',
+    coalesce(new.vehicle_vin, '') || ' ' ||
+    coalesce(new.vehicle_make, '') || ' ' ||
+    coalesce(new.vehicle_model, '') || ' ' ||
+    coalesce(new.vehicle_year::text, '') || ' ' ||
+    coalesce(new.inspection_type, '') || ' ' ||
+    coalesce(new.notes, '') || ' ' ||
+    coalesce(customer_name, '')
+  );
+  return new;
+end;
+$$;
+
+drop trigger if exists update_inspection_search_text_trigger on public.inspections;
+create trigger update_inspection_search_text_trigger
+  before insert or update on public.inspections
+  for each row execute function public.update_inspection_search_text();
+
+create index if not exists inspections_search_text_idx
+  on public.inspections using gin (search_text);
+
+-- One-time backfill so existing rows (inserted before the trigger existed)
+-- get a search_text value too. Safe to re-run.
+update public.inspections set updated_at = updated_at;
