@@ -15,7 +15,7 @@ export default async function InspectorDashboardPage() {
 
   const { data: inspector } = await supabase
     .from('inspectors')
-    .select('name, email')
+    .select('name, email, role')
     .eq('id', user.id)
     .single();
 
@@ -29,9 +29,14 @@ export default async function InspectorDashboardPage() {
     customers: { name: string } | null;
   };
 
+  // Explicitly scoped to the signed-in inspector's own inspections — this is
+  // "my inspections", not the manager's all-inspectors view at /manager.
+  // Managers also match the broader "Managers view all inspections" RLS
+  // policy, so without this filter they'd see everyone's rows here too.
   const { data: inspections } = await supabase
     .from('inspections')
     .select('id, vehicle_year, vehicle_make, vehicle_model, inspection_date, status, customers(name)')
+    .eq('inspector_id', user.id)
     .order('created_at', { ascending: false })
     .returns<InspectionListRow[]>();
 
@@ -57,12 +62,22 @@ export default async function InspectorDashboardPage() {
 
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-white">Inspections</h2>
-          <Link
-            href="/inspector/inspections/new"
-            className="px-4 py-2 bg-blue-600 text-white rounded font-semibold hover:bg-blue-700 text-sm"
-          >
-            New Inspection
-          </Link>
+          <div className="flex gap-2">
+            {inspector?.role === 'manager' && (
+              <Link
+                href="/inspector/manager"
+                className="px-4 py-2 bg-slate-700 text-white rounded font-semibold hover:bg-slate-600 text-sm"
+              >
+                Manager View
+              </Link>
+            )}
+            <Link
+              href="/inspector/inspections/new"
+              className="px-4 py-2 bg-blue-600 text-white rounded font-semibold hover:bg-blue-700 text-sm"
+            >
+              New Inspection
+            </Link>
+          </div>
         </div>
 
         {inspections && inspections.length > 0 ? (

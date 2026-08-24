@@ -220,3 +220,79 @@ create policy "Inspectors manage customers"
   to authenticated
   using (true)
   with check (true);
+
+-- Manager role: read-only visibility across all inspectors' data. Promoting
+-- someone to manager is a manual, deliberate action — run directly in the
+-- SQL editor, e.g.:
+--   update public.inspectors set role = 'manager' where email = '...';
+alter table public.inspectors
+  add column if not exists role text not null default 'inspector';
+
+-- "Inspectors can update own profile" below allows updating any column of
+-- the caller's own row, including role — without this trigger, any inspector
+-- could self-promote via a plain PATCH to /rest/v1/inspectors. auth.uid() is
+-- only non-null for requests going through PostgREST (i.e. the app/API), so
+-- this leaves the SQL-editor promotion path above untouched (auth.uid() is
+-- null there — no request JWT).
+create or replace function public.prevent_self_role_change()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.role is distinct from old.role and auth.uid() is not null then
+    raise exception 'Changing role is not permitted through this API.';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists prevent_inspector_role_change on public.inspectors;
+create trigger prevent_inspector_role_change
+  before update on public.inspectors
+  for each row execute function public.prevent_self_role_change();
+
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.table_constraints
+    where table_schema = 'public' and table_name = 'inspectors'
+      and constraint_name = 'inspectors_role_check'
+  ) then
+    alter table public.inspectors
+      add constraint inspectors_role_check check (role in ('inspector', 'manager'));
+  end if;
+end $$;
+
+-- security definer + a dedicated function (rather than an inline subquery in
+-- each policy) avoids RLS recursion when this is used inside a policy on
+-- public.inspectors itself.
+create or replace function public.is_manager()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.inspectors
+    where id = auth.uid() and role = 'manager'
+  );
+$$;
+
+drop policy if exists "Managers view all inspectors" on public.inspectors;
+create policy "Managers view all inspectors"
+  on public.inspectors for select
+  to authenticated
+  using (public.is_manager());
+
+drop policy if exists "Managers view all inspections" on public.inspections;
+create policy "Managers view all inspections"
+  on public.inspections for select
+  to authenticated
+  using (public.is_manager());
+
+drop policy if exists "Managers view all inspection media" on public.inspection_media;
+create policy "Managers view all inspection media"
+  on public.inspection_media for select
+  to authenticated
+  using (public.is_manager());
