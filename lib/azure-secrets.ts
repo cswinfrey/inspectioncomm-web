@@ -42,3 +42,7 @@ export function getAzureStorageConnectionString(): Promise<string> {
 export function getAzureStorageAccountKey(): Promise<string> {
   return getSecret('AZURE-STORAGE-ACCOUNT-KEY');
 }
+
+export function getSupabaseServiceRoleKey(): Promise<string> {
+  return getSecret('SUPABASE-SERVICE-ROLE-KEY');
+}

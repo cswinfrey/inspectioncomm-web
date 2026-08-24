@@ -1,23 +1,9 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { requireInspector } from '@/lib/supabase/require-inspector';
 import { logout } from '@/app/inspector/actions';
 
 export default async function InspectorDashboardPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/inspector/login');
-  }
-
-  const { data: inspector } = await supabase
-    .from('inspectors')
-    .select('name, email, role')
-    .eq('id', user.id)
-    .single();
+  const { supabase, user, inspector } = await requireInspector();
 
   type InspectionListRow = {
     id: string;

@@ -1,6 +1,16 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { requireInspector } from '@/lib/supabase/require-inspector';
+import { AddInspectorForm } from './AddInspectorForm';
+import { InspectorRow } from './InspectorRow';
+
+type InspectorListRow = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  is_active: boolean;
+};
 
 type InspectionRow = {
   id: string;
@@ -15,24 +25,18 @@ type InspectionRow = {
 };
 
 export default async function ManagerPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/inspector/login');
-  }
-
-  const { data: inspector } = await supabase
-    .from('inspectors')
-    .select('role')
-    .eq('id', user.id)
-    .single();
+  const { supabase, user, inspector } = await requireInspector();
 
   if (inspector?.role !== 'manager') {
     redirect('/inspector/dashboard');
   }
+
+  // Relies on the "Managers view all inspectors" RLS policy.
+  const { data: inspectors } = await supabase
+    .from('inspectors')
+    .select('id, name, email, role, is_active')
+    .order('name')
+    .returns<InspectorListRow[]>();
 
   // Relies on the "Managers view all inspections" RLS policy — no manual
   // inspector_id filter here, unlike the personal dashboard.
@@ -83,6 +87,22 @@ export default async function ManagerPage() {
             <p className="text-2xl font-bold text-white">{rows.length}</p>
           </div>
         </div>
+
+        <h2 className="text-lg font-semibold text-white mb-2">Inspectors</h2>
+        <AddInspectorForm />
+        <ul className="flex flex-col gap-2 mb-8">
+          {(inspectors ?? []).map((row) => (
+            <InspectorRow
+              key={row.id}
+              id={row.id}
+              name={row.name}
+              email={row.email}
+              role={row.role}
+              isActive={row.is_active}
+              isSelf={row.id === user.id}
+            />
+          ))}
+        </ul>
 
         <h2 className="text-lg font-semibold text-white mb-2">By inspector</h2>
         <ul className="flex flex-col gap-1 mb-8">

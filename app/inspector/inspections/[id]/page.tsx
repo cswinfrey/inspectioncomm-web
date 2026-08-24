@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { notFound } from 'next/navigation';
+import { requireInspector } from '@/lib/supabase/require-inspector';
 import { UploadMedia } from './UploadMedia';
 
 export default async function InspectionDetailPage({
@@ -9,14 +9,7 @@ export default async function InspectionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/inspector/login');
-  }
+  const { supabase } = await requireInspector();
 
   type InspectionDetailRow = {
     id: string;

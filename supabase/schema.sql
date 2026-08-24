@@ -228,19 +228,30 @@ create policy "Inspectors manage customers"
 alter table public.inspectors
   add column if not exists role text not null default 'inspector';
 
+-- Roster management: managers add/deactivate inspectors (via the Admin API,
+-- using the service_role key — never exposed to the client). New inspectors
+-- must change their manager-set temp password before using the app.
+alter table public.inspectors
+  add column if not exists is_active boolean not null default true,
+  add column if not exists must_change_password boolean not null default true;
+
 -- "Inspectors can update own profile" below allows updating any column of
--- the caller's own row, including role — without this trigger, any inspector
--- could self-promote via a plain PATCH to /rest/v1/inspectors. auth.uid() is
--- only non-null for requests going through PostgREST (i.e. the app/API), so
--- this leaves the SQL-editor promotion path above untouched (auth.uid() is
--- null there — no request JWT).
+-- the caller's own row, including role/is_active — without this trigger, any
+-- inspector could self-promote or reactivate themselves via a plain PATCH to
+-- /rest/v1/inspectors. must_change_password is deliberately NOT guarded here
+-- since inspectors need to clear it themselves after a password change.
+-- auth.uid() is only non-null for requests going through PostgREST (i.e. the
+-- app/API), so this leaves the SQL-editor promotion path above, and the
+-- service_role-authenticated manager actions, untouched (auth.uid() is null
+-- in both — no request JWT / RLS is bypassed entirely for service_role).
 create or replace function public.prevent_self_role_change()
 returns trigger
 language plpgsql
 as $$
 begin
-  if new.role is distinct from old.role and auth.uid() is not null then
-    raise exception 'Changing role is not permitted through this API.';
+  if (new.role is distinct from old.role or new.is_active is distinct from old.is_active)
+     and auth.uid() is not null then
+    raise exception 'Changing role or active status is not permitted through this API.';
   end if;
   return new;
 end;

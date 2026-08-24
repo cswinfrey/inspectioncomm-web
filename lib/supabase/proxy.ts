@@ -1,7 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PUBLIC_INSPECTOR_ROUTES = ['/inspector/login', '/inspector/signup'];
+const PUBLIC_INSPECTOR_ROUTES = ['/inspector/login'];
+const CHANGE_PASSWORD_ROUTE = '/inspector/change-password';
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -40,6 +41,20 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/inspector/login';
     return NextResponse.redirect(url);
+  }
+
+  if (isProtectedInspectorRoute && user && pathname !== CHANGE_PASSWORD_ROUTE) {
+    const { data: inspector } = await supabase
+      .from('inspectors')
+      .select('must_change_password')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (inspector?.must_change_password) {
+      const url = request.nextUrl.clone();
+      url.pathname = CHANGE_PASSWORD_ROUTE;
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;
