@@ -15,7 +15,7 @@ export default function Home() {
           />
         </div>
 
-        <h1 className="text-5xl font-bold text-white mb-4">
+        <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
           Inspection<span className="text-blue-500">Comm</span>
         </h1>
         <p className="text-2xl text-blue-400 font-semibold mb-4">

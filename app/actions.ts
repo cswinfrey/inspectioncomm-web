@@ -13,6 +13,13 @@ export async function subscribeEmail(
   _prevState: SignupState,
   formData: FormData
 ): Promise<SignupState> {
+  // Honeypot: real users never fill this (it's visually hidden); bots that
+  // blindly fill every field do. Pretend success so bots don't learn to
+  // skip it, but don't actually insert anything.
+  if (String(formData.get('company') ?? '').trim()) {
+    return { status: 'success', message: "Thanks! We'll notify you when we launch." };
+  }
+
   const email = String(formData.get('email') ?? '').trim();
 
   if (!EMAIL_REGEX.test(email)) {

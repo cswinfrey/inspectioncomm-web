@@ -27,6 +27,14 @@ export function SignupForm() {
     <div>
       <form action={formAction} className="flex gap-2 justify-center flex-wrap">
         <input
+          type="text"
+          name="company"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          className="absolute -left-[9999px] w-px h-px opacity-0"
+        />
+        <input
           type="email"
           name="email"
           placeholder="Enter your email"
