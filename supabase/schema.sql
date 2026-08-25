@@ -344,3 +344,25 @@ create index if not exists inspections_search_text_idx
 -- One-time backfill so existing rows (inserted before the trigger existed)
 -- get a search_text value too. Safe to re-run.
 update public.inspections set updated_at = updated_at;
+
+-- Customer report access: no customer accounts/login. Each inspection gets
+-- an unguessable token; possession of the link (inspectioncomm.com/report/
+-- <token>) is the access control, not RLS. Deliberately no RLS policy grants
+-- anon SELECT on inspections — that would let anyone enumerate every
+-- inspection regardless of token. Instead app/report/[token]/page.tsx reads
+-- via the service-role admin client (lib/supabase/admin.ts), filtered by an
+-- exact token match server-side.
+alter table public.inspections
+  add column if not exists access_token uuid not null default gen_random_uuid();
+
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.table_constraints
+    where table_schema = 'public' and table_name = 'inspections'
+      and constraint_name = 'inspections_access_token_key'
+  ) then
+    alter table public.inspections
+      add constraint inspections_access_token_key unique (access_token);
+  end if;
+end $$;

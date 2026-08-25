@@ -1,8 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 import { requireInspector } from '@/lib/supabase/require-inspector';
+import { getReadUrls } from '@/lib/azure-media';
 import { UploadMedia } from './UploadMedia';
 import { StatusToggle } from './StatusToggle';
+import { CopyReportLink } from './CopyReportLink';
 
 export default async function InspectionDetailPage({
   params,
@@ -15,6 +18,7 @@ export default async function InspectionDetailPage({
   type InspectionDetailRow = {
     id: string;
     inspector_id: string;
+    access_token: string;
     inspection_type: string;
     status: string;
     notes: string | null;
@@ -30,7 +34,7 @@ export default async function InspectionDetailPage({
   const { data: inspection } = await supabase
     .from('inspections')
     .select(
-      'id, inspector_id, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, customers(name, email)'
+      'id, inspector_id, access_token, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, customers(name, email)'
     )
     .eq('id', id)
     .single()
@@ -40,11 +44,18 @@ export default async function InspectionDetailPage({
     notFound();
   }
 
-  const { data: media } = await supabase
+  const { data: rawMedia } = await supabase
     .from('inspection_media')
     .select('*')
     .eq('inspection_id', id)
     .order('uploaded_at', { ascending: false });
+
+  const media = await getReadUrls(rawMedia ?? []);
+
+  const headerList = await headers();
+  const host = headerList.get('host');
+  const protocol = headerList.get('x-forwarded-proto') ?? 'https';
+  const reportUrl = `${protocol}://${host}/report/${inspection.access_token}`;
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 px-4 py-12">
@@ -61,10 +72,14 @@ export default async function InspectionDetailPage({
             <StatusToggle inspectionId={id} status={inspection.status} />
           )}
         </div>
-        <p className="text-gray-400 mb-8">
+        <p className="text-gray-400 mb-4">
           {inspection.customers?.name} &middot; {inspection.inspection_date} &middot;{' '}
           {inspection.status}
         </p>
+
+        <div className="mb-8">
+          <CopyReportLink url={reportUrl} />
+        </div>
 
         <dl className="grid grid-cols-2 gap-4 text-sm mb-8">
           <div>
@@ -101,7 +116,7 @@ export default async function InspectionDetailPage({
               {media.map((item) => (
                 <li key={item.id}>
                   <a
-                    href={item.file_url}
+                    href={item.read_url}
                     target="_blank"
                     rel="noreferrer"
                     className="block text-xs text-blue-400 hover:underline truncate"
