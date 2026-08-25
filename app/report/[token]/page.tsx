@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getReadUrls } from '@/lib/azure-media';
+import { ChecklistDisplay } from '@/components/ChecklistDisplay';
+import type { InspectionChecklist } from '@/lib/inspection-checklist';
 
 export default async function ReportPage({
   params,
@@ -25,13 +27,21 @@ export default async function ReportPage({
     vehicle_make: string | null;
     vehicle_model: string | null;
     vehicle_mileage: number | null;
+    vehicle_color: string | null;
+    license_plate: string | null;
+    license_plate_state: string | null;
+    engine_size: string | null;
+    engine_cylinders: number | null;
+    odometer_before: number | null;
+    odometer_after: number | null;
+    checklist: InspectionChecklist;
     customers: { name: string } | null;
   };
 
   const { data: inspection } = await admin
     .from('inspections')
     .select(
-      'id, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, customers(name)'
+      'id, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, vehicle_color, license_plate, license_plate_state, engine_size, engine_cylinders, odometer_before, odometer_after, checklist, customers(name)'
     )
     .eq('access_token', token)
     .single()
@@ -83,6 +93,22 @@ export default async function ReportPage({
             <p className="text-white whitespace-pre-wrap">{inspection.notes}</p>
           </div>
         )}
+
+        <div className="mb-8">
+          <h2 className="text-gray-500 text-sm mb-2">Inspection checklist</h2>
+          <ChecklistDisplay
+            core={{
+              vehicle_color: inspection.vehicle_color,
+              license_plate: inspection.license_plate,
+              license_plate_state: inspection.license_plate_state,
+              engine_size: inspection.engine_size,
+              engine_cylinders: inspection.engine_cylinders,
+              odometer_before: inspection.odometer_before,
+              odometer_after: inspection.odometer_after,
+            }}
+            checklist={inspection.checklist ?? {}}
+          />
+        </div>
 
         <div>
           <h2 className="text-gray-500 text-sm mb-2">Photos &amp; video ({media.length})</h2>

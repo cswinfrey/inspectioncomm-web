@@ -366,3 +366,41 @@ begin
       add constraint inspections_access_token_key unique (access_token);
   end if;
 end $$;
+
+-- Detailed vehicle checklist. A handful of identity/reading fields get real
+-- columns (worth filtering/searching on later); everything else that's a
+-- repeated "X condition" shape lives in one JSONB checklist column so new
+-- checklist items don't need a migration each time. Shape (documented here,
+-- not enforced by the DB — see app/inspector/inspections/checklist.ts):
+--   tires: { size, condition, tread }
+--   paint: { condition }
+--   transmission: { type, condition }
+--   suspension_steering: { condition }
+--   power_steering: { type, condition }
+--   brake_fluid: { level, condition }
+--   fluid_leaks: { condition, notes }
+--   ac_heat: { condition }
+--   interior_electronics: { radio, heated_cooled_seats, sunroof, rear_tailgate }
+--   obd_scan: { ecm, tcm, abs, srs, awd_4wd }
+alter table public.inspections
+  add column if not exists vehicle_color text,
+  add column if not exists license_plate text,
+  add column if not exists license_plate_state text,
+  add column if not exists engine_size text,
+  add column if not exists engine_cylinders integer,
+  add column if not exists odometer_before integer,
+  add column if not exists odometer_after integer,
+  add column if not exists checklist jsonb not null default '{}'::jsonb;
+
+-- Managers can edit any inspection (e.g. correcting a completed one) —
+-- previously they only had SELECT. Inspectors editing their own completed
+-- inspections is blocked at the application layer (see setInspectionStatus/
+-- updateInspectionChecklist in app/inspector/inspections/actions.ts), not
+-- here — RLS can't cleanly express "locked except for the status columns"
+-- without listing every column, so that rule lives in the server action.
+drop policy if exists "Managers manage all inspections" on public.inspections;
+create policy "Managers manage all inspections"
+  on public.inspections for update
+  to authenticated
+  using (public.is_manager())
+  with check (public.is_manager());

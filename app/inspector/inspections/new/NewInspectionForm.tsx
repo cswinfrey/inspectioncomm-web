@@ -104,6 +104,21 @@ export function NewInspectionForm({ customers }: { customers: Customer[] }) {
                 className={inputClass}
               />
             </div>
+            <div className="grid grid-cols-3 gap-3">
+              <input type="text" name="vehicle_color" placeholder="Color" className={inputClass} />
+              <input
+                type="text"
+                name="license_plate"
+                placeholder="License plate"
+                className={inputClass}
+              />
+              <input
+                type="text"
+                name="license_plate_state"
+                placeholder="Plate state"
+                className={inputClass}
+              />
+            </div>
           </fieldset>
 
           <fieldset className="flex flex-col gap-3">

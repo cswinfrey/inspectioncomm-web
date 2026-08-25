@@ -3,9 +3,12 @@ import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 import { requireInspector } from '@/lib/supabase/require-inspector';
 import { getReadUrls } from '@/lib/azure-media';
+import { ChecklistDisplay } from '@/components/ChecklistDisplay';
+import type { InspectionChecklist } from '@/lib/inspection-checklist';
 import { UploadMedia } from './UploadMedia';
 import { StatusToggle } from './StatusToggle';
 import { CopyReportLink } from './CopyReportLink';
+import { ChecklistForm } from './ChecklistForm';
 
 export default async function InspectionDetailPage({
   params,
@@ -13,7 +16,7 @@ export default async function InspectionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { supabase, user } = await requireInspector();
+  const { supabase, user, inspector } = await requireInspector();
 
   type InspectionDetailRow = {
     id: string;
@@ -28,13 +31,21 @@ export default async function InspectionDetailPage({
     vehicle_make: string | null;
     vehicle_model: string | null;
     vehicle_mileage: number | null;
+    vehicle_color: string | null;
+    license_plate: string | null;
+    license_plate_state: string | null;
+    engine_size: string | null;
+    engine_cylinders: number | null;
+    odometer_before: number | null;
+    odometer_after: number | null;
+    checklist: InspectionChecklist;
     customers: { name: string; email: string } | null;
   };
 
   const { data: inspection } = await supabase
     .from('inspections')
     .select(
-      'id, inspector_id, access_token, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, customers(name, email)'
+      'id, inspector_id, access_token, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, vehicle_color, license_plate, license_plate_state, engine_size, engine_cylinders, odometer_before, odometer_after, checklist, customers(name, email)'
     )
     .eq('id', id)
     .single()
@@ -106,6 +117,36 @@ export default async function InspectionDetailPage({
             <p className="text-white whitespace-pre-wrap">{inspection.notes}</p>
           </div>
         )}
+
+        {(() => {
+          const isOwner = inspection.inspector_id === user.id;
+          const isManager = inspector?.role === 'manager';
+          const canEditChecklist = (isOwner && inspection.status !== 'completed') || isManager;
+          const core = {
+            vehicle_color: inspection.vehicle_color,
+            license_plate: inspection.license_plate,
+            license_plate_state: inspection.license_plate_state,
+            engine_size: inspection.engine_size,
+            engine_cylinders: inspection.engine_cylinders,
+            odometer_before: inspection.odometer_before,
+            odometer_after: inspection.odometer_after,
+          };
+
+          return (
+            <div className="mb-8">
+              <h2 className="text-gray-500 text-sm mb-2">Inspection checklist</h2>
+              {canEditChecklist ? (
+                <ChecklistForm
+                  inspectionId={id}
+                  core={core}
+                  checklist={inspection.checklist ?? {}}
+                />
+              ) : (
+                <ChecklistDisplay core={core} checklist={inspection.checklist ?? {}} />
+              )}
+            </div>
+          );
+        })()}
 
         <div>
           <h2 className="text-gray-500 text-sm mb-2">
