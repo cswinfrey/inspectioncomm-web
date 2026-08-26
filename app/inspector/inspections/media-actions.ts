@@ -94,7 +94,8 @@ export async function recordInspectionMedia(
   fileUrl: string,
   fileType: string,
   fileName: string,
-  fileSizeBytes: number
+  fileSizeBytes: number,
+  tag?: string
 ): Promise<RecordMediaResult> {
   const supabase = await createClient();
   const {
@@ -111,6 +112,7 @@ export async function recordInspectionMedia(
     file_type: fileType,
     file_name: fileName,
     file_size_bytes: fileSizeBytes,
+    tag: tag?.trim() || null,
   });
 
   if (error) {

@@ -38,6 +38,7 @@ export default async function InspectionDetailPage({
     engine_cylinders: number | null;
     odometer_before: number | null;
     odometer_after: number | null;
+    synopsis: string | null;
     checklist: InspectionChecklist;
     customers: { name: string; email: string } | null;
   };
@@ -45,7 +46,7 @@ export default async function InspectionDetailPage({
   const { data: inspection } = await supabase
     .from('inspections')
     .select(
-      'id, inspector_id, access_token, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, vehicle_color, license_plate, license_plate_state, engine_size, engine_cylinders, odometer_before, odometer_after, checklist, customers(name, email)'
+      'id, inspector_id, access_token, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, vehicle_color, license_plate, license_plate_state, engine_size, engine_cylinders, odometer_before, odometer_after, synopsis, checklist, customers(name, email)'
     )
     .eq('id', id)
     .single()
@@ -111,13 +112,6 @@ export default async function InspectionDetailPage({
           </div>
         </dl>
 
-        {inspection.notes && (
-          <div className="mb-8">
-            <h2 className="text-gray-500 text-sm mb-1">Notes</h2>
-            <p className="text-white whitespace-pre-wrap">{inspection.notes}</p>
-          </div>
-        )}
-
         {(() => {
           const isOwner = inspection.inspector_id === user.id;
           const isManager = inspector?.role === 'manager';
@@ -130,6 +124,8 @@ export default async function InspectionDetailPage({
             engine_cylinders: inspection.engine_cylinders,
             odometer_before: inspection.odometer_before,
             odometer_after: inspection.odometer_after,
+            notes: inspection.notes,
+            synopsis: inspection.synopsis,
           };
 
           return (
@@ -156,6 +152,9 @@ export default async function InspectionDetailPage({
             <ul className="grid grid-cols-3 gap-2">
               {media.map((item) => (
                 <li key={item.id}>
+                  {item.tag && (
+                    <span className="block text-xs text-gray-500 truncate">{item.tag}</span>
+                  )}
                   <a
                     href={item.read_url}
                     target="_blank"

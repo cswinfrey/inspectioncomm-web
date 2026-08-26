@@ -34,6 +34,7 @@ export default async function ReportPage({
     engine_cylinders: number | null;
     odometer_before: number | null;
     odometer_after: number | null;
+    synopsis: string | null;
     checklist: InspectionChecklist;
     customers: { name: string } | null;
   };
@@ -41,7 +42,7 @@ export default async function ReportPage({
   const { data: inspection } = await admin
     .from('inspections')
     .select(
-      'id, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, vehicle_color, license_plate, license_plate_state, engine_size, engine_cylinders, odometer_before, odometer_after, checklist, customers(name)'
+      'id, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, vehicle_color, license_plate, license_plate_state, engine_size, engine_cylinders, odometer_before, odometer_after, synopsis, checklist, customers(name)'
     )
     .eq('access_token', token)
     .single()
@@ -87,13 +88,6 @@ export default async function ReportPage({
           </div>
         </dl>
 
-        {inspection.notes && (
-          <div className="mb-8">
-            <h2 className="text-gray-500 text-sm mb-1">Inspector notes</h2>
-            <p className="text-white whitespace-pre-wrap">{inspection.notes}</p>
-          </div>
-        )}
-
         <div className="mb-8">
           <h2 className="text-gray-500 text-sm mb-2">Inspection checklist</h2>
           <ChecklistDisplay
@@ -105,6 +99,8 @@ export default async function ReportPage({
               engine_cylinders: inspection.engine_cylinders,
               odometer_before: inspection.odometer_before,
               odometer_after: inspection.odometer_after,
+              notes: inspection.notes,
+              synopsis: inspection.synopsis,
             }}
             checklist={inspection.checklist ?? {}}
           />
@@ -130,6 +126,9 @@ export default async function ReportPage({
                       </div>
                     )}
                   </a>
+                  {item.tag && (
+                    <p className="text-xs text-gray-500 mt-1 truncate">{item.tag}</p>
+                  )}
                 </li>
               ))}
             </ul>

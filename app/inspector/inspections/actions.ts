@@ -254,6 +254,8 @@ export async function updateInspectionChecklist(
       engine_cylinders: optionalInt(formData, 'engine_cylinders'),
       odometer_before: optionalInt(formData, 'odometer_before'),
       odometer_after: optionalInt(formData, 'odometer_after'),
+      notes: optional(formData, 'notes'),
+      synopsis: optional(formData, 'synopsis'),
       checklist,
     })
     .eq('id', inspectionId);

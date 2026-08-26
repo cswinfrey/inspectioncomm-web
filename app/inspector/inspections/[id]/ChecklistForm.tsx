@@ -97,6 +97,8 @@ type CoreFields = {
   engine_cylinders: number | null;
   odometer_before: number | null;
   odometer_after: number | null;
+  notes: string | null;
+  synopsis: string | null;
 };
 
 export function ChecklistForm({
@@ -268,6 +270,29 @@ export function ChecklistForm({
           label="AWD / 4WD"
           defaultValue={checklist.obd_scan?.awd_4wd}
         />
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-3">
+        <legend className="text-gray-300 font-semibold mb-1">Notes &amp; synopsis</legend>
+        <label className="text-xs text-gray-400 flex flex-col gap-1">
+          Inspector notes
+          <textarea
+            name="notes"
+            defaultValue={core.notes ?? ''}
+            rows={4}
+            className={inputClass}
+          />
+        </label>
+        <label className="text-xs text-gray-400 flex flex-col gap-1">
+          Synopsis / diagnosis
+          <textarea
+            name="synopsis"
+            defaultValue={core.synopsis ?? ''}
+            rows={4}
+            placeholder="Overall assessment of the vehicle's condition..."
+            className={inputClass}
+          />
+        </label>
       </fieldset>
 
       <div>

@@ -404,3 +404,15 @@ create policy "Managers manage all inspections"
   to authenticated
   using (public.is_manager())
   with check (public.is_manager());
+
+-- Inspector's overall diagnosis/summary, edited via the checklist form
+-- alongside the existing `notes` column (same edit/lock rules as the rest
+-- of the checklist).
+alter table public.inspections
+  add column if not exists synopsis text;
+
+-- Lets a bulk photo upload tag every file in the batch with which checklist
+-- item it documents (e.g. "Tires", "Engine") — see MEDIA_TAG_SUGGESTIONS in
+-- lib/inspection-checklist.ts. Free text, not a fixed enum.
+alter table public.inspection_media
+  add column if not exists tag text;

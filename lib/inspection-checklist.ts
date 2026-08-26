@@ -1,7 +1,23 @@
-export const CONDITION_OPTIONS = ['Good', 'Fair', 'Poor'] as const;
+export const CONDITION_OPTIONS = ['Good', 'Fair', 'Poor', 'Not Applicable'] as const;
 export type Condition = (typeof CONDITION_OPTIONS)[number];
 
 export const OBD_SCAN_OPTIONS = ['Pass', 'Codes Found', 'Not Applicable'] as const;
+
+// Suggested photo tags matching the checklist sections — shown as
+// autocomplete suggestions, not a fixed enum, so an inspector can still
+// type something more specific (e.g. "Front Left Tire").
+export const MEDIA_TAG_SUGGESTIONS = [
+  'VIN / Odometer',
+  'Exterior / Paint',
+  'Tires',
+  'Engine',
+  'Transmission',
+  'Suspension / Steering',
+  'Brakes / Fluids',
+  'AC / Interior',
+  'OBD Scan',
+  'General',
+] as const;
 export type ObdScanResult = (typeof OBD_SCAN_OPTIONS)[number];
 
 export type InspectionChecklist = {

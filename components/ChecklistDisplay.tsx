@@ -8,6 +8,8 @@ type CoreFields = {
   engine_cylinders: number | null;
   odometer_before: number | null;
   odometer_after: number | null;
+  notes: string | null;
+  synopsis: string | null;
 };
 
 function Field({ label, value }: { label: string; value: string | number | null | undefined }) {
@@ -98,6 +100,24 @@ export function ChecklistDisplay({
         <Field label="SRS" value={checklist.obd_scan?.srs} />
         <Field label="AWD / 4WD" value={checklist.obd_scan?.awd_4wd} />
       </Section>
+
+      {(core.notes || core.synopsis) && (
+        <div className="mb-2">
+          <h3 className="text-gray-500 text-xs uppercase tracking-wide mb-2">Notes &amp; synopsis</h3>
+          {core.notes && (
+            <div className="mb-4">
+              <p className="text-gray-500 text-sm mb-1">Inspector notes</p>
+              <p className="text-white whitespace-pre-wrap text-sm">{core.notes}</p>
+            </div>
+          )}
+          {core.synopsis && (
+            <div>
+              <p className="text-gray-500 text-sm mb-1">Synopsis / diagnosis</p>
+              <p className="text-white whitespace-pre-wrap text-sm">{core.synopsis}</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
