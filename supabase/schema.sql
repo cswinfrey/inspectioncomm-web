@@ -413,6 +413,17 @@ alter table public.inspections
 
 -- Lets a bulk photo upload tag every file in the batch with which checklist
 -- item it documents (e.g. "Tires", "Engine") — see MEDIA_TAG_SUGGESTIONS in
--- lib/inspection-checklist.ts. Free text, not a fixed enum.
+-- lib/inspection-checklist.ts. Free text, not a fixed enum. Editable per
+-- photo after upload too (e.g. "Tires" -> "Left front tire") via
+-- updateMediaTag in app/inspector/inspections/media-actions.ts.
 alter table public.inspection_media
   add column if not exists tag text;
+
+-- Managers can edit any inspection's media (e.g. relabeling a photo on a
+-- completed inspection) — previously they only had SELECT.
+drop policy if exists "Managers manage all inspection media" on public.inspection_media;
+create policy "Managers manage all inspection media"
+  on public.inspection_media for update
+  to authenticated
+  using (public.is_manager())
+  with check (public.is_manager());

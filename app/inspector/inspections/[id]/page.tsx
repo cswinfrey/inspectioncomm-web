@@ -5,10 +5,12 @@ import { requireInspector } from '@/lib/supabase/require-inspector';
 import { getReadUrls } from '@/lib/azure-media';
 import { ChecklistDisplay } from '@/components/ChecklistDisplay';
 import type { InspectionChecklist } from '@/lib/inspection-checklist';
+import { groupMediaByTag } from '@/lib/group-media';
 import { UploadMedia } from './UploadMedia';
 import { StatusToggle } from './StatusToggle';
 import { CopyReportLink } from './CopyReportLink';
 import { ChecklistForm } from './ChecklistForm';
+import { MediaTagInput } from './MediaTagInput';
 
 export default async function InspectionDetailPage({
   params,
@@ -63,6 +65,11 @@ export default async function InspectionDetailPage({
     .order('uploaded_at', { ascending: false });
 
   const media = await getReadUrls(rawMedia ?? []);
+  const mediaGroups = groupMediaByTag(media);
+
+  const isOwner = inspection.inspector_id === user.id;
+  const isManager = inspector?.role === 'manager';
+  const canEditChecklist = (isOwner && inspection.status !== 'completed') || isManager;
 
   const headerList = await headers();
   const host = headerList.get('host');
@@ -113,9 +120,6 @@ export default async function InspectionDetailPage({
         </dl>
 
         {(() => {
-          const isOwner = inspection.inspector_id === user.id;
-          const isManager = inspector?.role === 'manager';
-          const canEditChecklist = (isOwner && inspection.status !== 'completed') || isManager;
           const core = {
             vehicle_color: inspection.vehicle_color,
             license_plate: inspection.license_plate,
@@ -148,24 +152,37 @@ export default async function InspectionDetailPage({
           <h2 className="text-gray-500 text-sm mb-2">
             Photos &amp; video ({media?.length ?? 0})
           </h2>
-          {media && media.length > 0 ? (
-            <ul className="grid grid-cols-3 gap-2">
-              {media.map((item) => (
-                <li key={item.id}>
-                  {item.tag && (
-                    <span className="block text-xs text-gray-500 truncate">{item.tag}</span>
-                  )}
-                  <a
-                    href={item.read_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block text-xs text-blue-400 hover:underline truncate"
-                  >
-                    {item.file_name}
-                  </a>
-                </li>
+          {mediaGroups.length > 0 ? (
+            <div className="flex flex-col gap-4">
+              {mediaGroups.map((group) => (
+                <div key={group.tag}>
+                  <h3 className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    {group.tag}
+                  </h3>
+                  <ul className="grid grid-cols-3 gap-2">
+                    {group.items.map((item) => (
+                      <li key={item.id}>
+                        <a
+                          href={item.read_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block text-xs text-blue-400 hover:underline truncate"
+                        >
+                          {item.file_name}
+                        </a>
+                        {canEditChecklist && (
+                          <MediaTagInput
+                            mediaId={item.id}
+                            inspectionId={id}
+                            initialTag={item.tag}
+                          />
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
+            </div>
           ) : (
             <p className="text-gray-500 text-sm">No photos uploaded yet.</p>
           )}

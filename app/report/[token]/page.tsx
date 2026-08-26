@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getReadUrls } from '@/lib/azure-media';
 import { ChecklistDisplay } from '@/components/ChecklistDisplay';
 import type { InspectionChecklist } from '@/lib/inspection-checklist';
+import { groupMediaByTag } from '@/lib/group-media';
 
 export default async function ReportPage({
   params,
@@ -59,6 +60,7 @@ export default async function ReportPage({
     .order('uploaded_at', { ascending: false });
 
   const media = await getReadUrls(rawMedia ?? []);
+  const mediaGroups = groupMediaByTag(media);
   const isImage = (fileType: string) => fileType.startsWith('image/');
 
   return (
@@ -108,30 +110,36 @@ export default async function ReportPage({
 
         <div>
           <h2 className="text-gray-500 text-sm mb-2">Photos &amp; video ({media.length})</h2>
-          {media.length > 0 ? (
-            <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {media.map((item) => (
-                <li key={item.id}>
-                  <a href={item.read_url} target="_blank" rel="noreferrer" className="block">
-                    {isImage(item.file_type) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={item.read_url}
-                        alt={item.file_name}
-                        className="w-full aspect-square object-cover rounded"
-                      />
-                    ) : (
-                      <div className="w-full aspect-square rounded bg-slate-800 flex items-center justify-center text-xs text-gray-400 p-2 text-center">
-                        {item.file_name}
-                      </div>
-                    )}
-                  </a>
-                  {item.tag && (
-                    <p className="text-xs text-gray-500 mt-1 truncate">{item.tag}</p>
-                  )}
-                </li>
+          {mediaGroups.length > 0 ? (
+            <div className="flex flex-col gap-4">
+              {mediaGroups.map((group) => (
+                <div key={group.tag}>
+                  <h3 className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    {group.tag}
+                  </h3>
+                  <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {group.items.map((item) => (
+                      <li key={item.id}>
+                        <a href={item.read_url} target="_blank" rel="noreferrer" className="block">
+                          {isImage(item.file_type) ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={item.read_url}
+                              alt={item.file_name}
+                              className="w-full aspect-square object-cover rounded"
+                            />
+                          ) : (
+                            <div className="w-full aspect-square rounded bg-slate-800 flex items-center justify-center text-xs text-gray-400 p-2 text-center">
+                              {item.file_name}
+                            </div>
+                          )}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
+            </div>
           ) : (
             <p className="text-gray-500 text-sm">No photos uploaded yet.</p>
           )}

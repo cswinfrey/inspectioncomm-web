@@ -3,7 +3,46 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Condition, InspectionChecklist, ObdScanResult } from '@/lib/inspection-checklist';
+
+// Shared by any action that edits an inspection's checklist/media: the
+// owning inspector can edit while in_progress; a manager can always edit;
+// no one else can. Once completed, only a manager may still make changes.
+export async function checkInspectionEditPermission(
+  supabase: SupabaseClient,
+  userId: string,
+  inspectionId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data: inspector } = await supabase
+    .from('inspectors')
+    .select('role')
+    .eq('id', userId)
+    .single();
+  const isManager = inspector?.role === 'manager';
+
+  const { data: inspection } = await supabase
+    .from('inspections')
+    .select('inspector_id, status')
+    .eq('id', inspectionId)
+    .single();
+
+  if (!inspection) {
+    return { ok: false, error: 'Inspection not found.' };
+  }
+
+  const isOwner = inspection.inspector_id === userId;
+  if (!isOwner && !isManager) {
+    return { ok: false, error: 'Not authorized.' };
+  }
+  if (isOwner && !isManager && inspection.status === 'completed') {
+    return {
+      ok: false,
+      error: 'This inspection is completed. Ask a manager to make corrections.',
+    };
+  }
+  return { ok: true };
+}
 
 export type CreateInspectionState = {
   status: 'idle' | 'error';
@@ -170,32 +209,9 @@ export async function updateInspectionChecklist(
     return { status: 'error', message: 'Not authenticated.' };
   }
 
-  const { data: inspector } = await supabase
-    .from('inspectors')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-  const isManager = inspector?.role === 'manager';
-
-  const { data: inspection } = await supabase
-    .from('inspections')
-    .select('inspector_id, status')
-    .eq('id', inspectionId)
-    .single();
-
-  if (!inspection) {
-    return { status: 'error', message: 'Inspection not found.' };
-  }
-
-  const isOwner = inspection.inspector_id === user.id;
-  if (!isOwner && !isManager) {
-    return { status: 'error', message: 'Not authorized.' };
-  }
-  if (isOwner && !isManager && inspection.status === 'completed') {
-    return {
-      status: 'error',
-      message: 'This inspection is completed. Ask a manager to make corrections.',
-    };
+  const permission = await checkInspectionEditPermission(supabase, user.id, inspectionId);
+  if (!permission.ok) {
+    return { status: 'error', message: permission.error };
   }
 
   const checklist: InspectionChecklist = {

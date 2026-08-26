@@ -10,6 +10,7 @@ import {
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getAzureStorageAccountKey } from '@/lib/azure-secrets';
+import { checkInspectionEditPermission } from './actions';
 
 const ACCOUNT_NAME = process.env.NEXT_PUBLIC_AZURE_STORAGE_ACCOUNT_NAME!;
 const CONTAINER_NAME = process.env.NEXT_PUBLIC_AZURE_STORAGE_CONTAINER_NAME!;
@@ -117,6 +118,38 @@ export async function recordInspectionMedia(
 
   if (error) {
     return { ok: false, error: 'Could not save the upload.' };
+  }
+
+  revalidatePath(`/inspector/inspections/${inspectionId}`);
+  return { ok: true };
+}
+
+export async function updateMediaTag(
+  mediaId: string,
+  inspectionId: string,
+  tag: string
+): Promise<RecordMediaResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, error: 'Not authenticated.' };
+  }
+
+  const permission = await checkInspectionEditPermission(supabase, user.id, inspectionId);
+  if (!permission.ok) {
+    return { ok: false, error: permission.error };
+  }
+
+  const { error } = await supabase
+    .from('inspection_media')
+    .update({ tag: tag.trim() || null })
+    .eq('id', mediaId);
+
+  if (error) {
+    return { ok: false, error: 'Could not update the label.' };
   }
 
   revalidatePath(`/inspector/inspections/${inspectionId}`);
