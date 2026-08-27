@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
+import { sendInspectionRequestEmails } from '@/lib/email';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -102,6 +103,25 @@ export async function submitInspectionRequest(
 
   if (error) {
     return { status: 'error', message: 'Something went wrong. Please try again.' };
+  }
+
+  // Best-effort: the request is already saved and visible in
+  // /inspector/requests regardless, so a delivery failure here shouldn't
+  // block the visitor from seeing a success message.
+  try {
+    await sendInspectionRequestEmails({
+      name,
+      email,
+      phone: phone || null,
+      vehicleType,
+      vehicleYear: vehicleYear || null,
+      vehicleMake: vehicleMake || null,
+      vehicleModel: vehicleModel || null,
+      location: location || null,
+      notes: notes || null,
+    });
+  } catch (emailError) {
+    console.error('Failed to send inspection request emails', emailError);
   }
 
   return {
