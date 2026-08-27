@@ -36,6 +36,7 @@ export default async function InspectionDetailPage({
     vehicle_color: string | null;
     license_plate: string | null;
     license_plate_state: string | null;
+    fuel_type: string | null;
     engine_size: string | null;
     engine_cylinders: number | null;
     odometer_before: number | null;
@@ -48,7 +49,7 @@ export default async function InspectionDetailPage({
   const { data: inspection } = await supabase
     .from('inspections')
     .select(
-      'id, inspector_id, access_token, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, vehicle_color, license_plate, license_plate_state, engine_size, engine_cylinders, odometer_before, odometer_after, synopsis, checklist, customers(name, email)'
+      'id, inspector_id, access_token, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, vehicle_color, license_plate, license_plate_state, fuel_type, engine_size, engine_cylinders, odometer_before, odometer_after, synopsis, checklist, customers(name, email)'
     )
     .eq('id', id)
     .single()
@@ -124,6 +125,7 @@ export default async function InspectionDetailPage({
             vehicle_color: inspection.vehicle_color,
             license_plate: inspection.license_plate,
             license_plate_state: inspection.license_plate_state,
+            fuel_type: inspection.fuel_type,
             engine_size: inspection.engine_size,
             engine_cylinders: inspection.engine_cylinders,
             odometer_before: inspection.odometer_before,

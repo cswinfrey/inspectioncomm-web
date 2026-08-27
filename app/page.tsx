@@ -57,8 +57,8 @@ export default function Home() {
             <Image
               src="/company_logo.png"
               alt="InspectionComm Logo"
-              width={120}
-              height={120}
+              width={240}
+              height={240}
               className="drop-shadow-lg"
             />
           </div>

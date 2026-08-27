@@ -4,6 +4,7 @@ type CoreFields = {
   vehicle_color: string | null;
   license_plate: string | null;
   license_plate_state: string | null;
+  fuel_type: string | null;
   engine_size: string | null;
   engine_cylinders: number | null;
   odometer_before: number | null;
@@ -57,6 +58,7 @@ export function ChecklistDisplay({
       </Section>
 
       <Section title="Engine & transmission">
+        <Field label="Fuel type" value={core.fuel_type} />
         <Field label="Engine size" value={core.engine_size} />
         <Field label="Cylinders" value={core.engine_cylinders} />
         <Field label="Transmission type" value={checklist.transmission?.type} />

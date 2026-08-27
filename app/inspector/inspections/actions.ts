@@ -260,12 +260,17 @@ export async function updateInspectionChecklist(
     },
   };
 
+  const fuelTypeChoice = optional(formData, 'fuel_type_choice');
+  const fuelType =
+    fuelTypeChoice === 'Other' ? optional(formData, 'fuel_type_other') : fuelTypeChoice;
+
   const { error } = await supabase
     .from('inspections')
     .update({
       vehicle_color: optional(formData, 'vehicle_color'),
       license_plate: optional(formData, 'license_plate'),
       license_plate_state: optional(formData, 'license_plate_state'),
+      fuel_type: fuelType,
       engine_size: optional(formData, 'engine_size'),
       engine_cylinders: optionalInt(formData, 'engine_cylinders'),
       odometer_before: optionalInt(formData, 'odometer_before'),

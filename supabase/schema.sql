@@ -477,3 +477,9 @@ create policy "Inspectors manage inspection requests"
   to authenticated
   using (true)
   with check (true);
+
+-- Fuel type: a core identity field like vehicle_color, not a JSONB
+-- checklist item — one of Gas/Diesel/Electric, or free text when the
+-- inspector picks "Other" (see FUEL_TYPE_OPTIONS in lib/inspection-checklist.ts).
+alter table public.inspections
+  add column if not exists fuel_type text;

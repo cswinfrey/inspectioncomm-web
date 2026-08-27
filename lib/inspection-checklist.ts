@@ -1,6 +1,10 @@
 export const CONDITION_OPTIONS = ['Good', 'Fair', 'Poor', 'Not Applicable'] as const;
 export type Condition = (typeof CONDITION_OPTIONS)[number];
 
+// The fixed choices for fuel type; "Other" reveals a free-text box in the
+// form instead of being a value itself (see FuelTypeField in ChecklistForm).
+export const FUEL_TYPE_OPTIONS = ['Gas', 'Diesel', 'Electric'] as const;
+
 export const OBD_SCAN_OPTIONS = ['Pass', 'Codes Found', 'Not Applicable'] as const;
 
 // Suggested photo tags matching the checklist sections — shown as

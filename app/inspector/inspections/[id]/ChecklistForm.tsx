@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
@@ -8,6 +9,7 @@ import {
 } from '@/app/inspector/inspections/actions';
 import {
   CONDITION_OPTIONS,
+  FUEL_TYPE_OPTIONS,
   OBD_SCAN_OPTIONS,
   type InspectionChecklist,
 } from '@/lib/inspection-checklist';
@@ -76,6 +78,45 @@ function ObdField({ name, label, defaultValue }: {
   );
 }
 
+function FuelTypeField({ defaultValue }: { defaultValue?: string | null }) {
+  const isKnown = (FUEL_TYPE_OPTIONS as readonly string[]).includes(defaultValue ?? '');
+  const [choice, setChoice] = useState(() => {
+    if (isKnown) return defaultValue as string;
+    return defaultValue ? 'Other' : '';
+  });
+
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-xs text-gray-400 flex flex-col gap-1">
+        Fuel type
+        <select
+          name="fuel_type_choice"
+          value={choice}
+          onChange={(e) => setChoice(e.target.value)}
+          className={inputClass}
+        >
+          <option value="">—</option>
+          {FUEL_TYPE_OPTIONS.map((f) => (
+            <option key={f} value={f}>
+              {f}
+            </option>
+          ))}
+          <option value="Other">Other</option>
+        </select>
+      </label>
+      {choice === 'Other' && (
+        <input
+          type="text"
+          name="fuel_type_other"
+          placeholder="Specify fuel type"
+          defaultValue={isKnown ? '' : (defaultValue ?? '')}
+          className={inputClass}
+        />
+      )}
+    </div>
+  );
+}
+
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
@@ -93,6 +134,7 @@ type CoreFields = {
   vehicle_color: string | null;
   license_plate: string | null;
   license_plate_state: string | null;
+  fuel_type: string | null;
   engine_size: string | null;
   engine_cylinders: number | null;
   odometer_before: number | null;
@@ -146,6 +188,7 @@ export function ChecklistForm({
         <legend className="text-gray-300 font-semibold mb-1 col-span-2">
           Engine &amp; transmission
         </legend>
+        <FuelTypeField defaultValue={core.fuel_type} />
         <TextField name="engine_size" label="Engine size" defaultValue={core.engine_size} />
         <TextField
           name="engine_cylinders"
