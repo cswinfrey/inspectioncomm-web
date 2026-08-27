@@ -2,20 +2,11 @@
 
 create extension if not exists pgcrypto;
 
-create table if not exists public.signups (
-  id uuid primary key default gen_random_uuid(),
-  email text not null unique,
-  created_at timestamptz not null default now()
-);
-
-alter table public.signups enable row level security;
-
-drop policy if exists "Allow anonymous signups" on public.signups;
-create policy "Allow anonymous signups"
-  on public.signups
-  for insert
-  to anon
-  with check (true);
+-- signups was the "coming soon" launch-notification list from before the
+-- product existed; superseded by the "Request an Inspection" lead form
+-- (see public.inspection_requests below) once the homepage went live with
+-- real content. Confirmed 0 rows before dropping — nothing lost.
+drop table if exists public.signups;
 
 -- Core product schema. IMPORTANT: customers/inspectors/inspections/
 -- inspection_media already existed in this Supabase project before this
