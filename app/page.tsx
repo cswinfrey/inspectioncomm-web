@@ -7,7 +7,7 @@ export default function Home() {
       <div className="text-center px-4 max-w-2xl">
         <div className="mb-8 flex justify-center">
           <Image
-            src="/company_logo.jpg"
+            src="/company_logo.png"
             alt="InspectionComm Logo"
             width={120}
             height={120}
