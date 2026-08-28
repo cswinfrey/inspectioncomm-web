@@ -186,31 +186,39 @@ create policy "Inspectors can update own profile"
   using (id = auth.uid())
   with check (id = auth.uid());
 
+-- Security audit finding (2026-08-28): the previous single `for all` policy
+-- here let any inspector edit OR DELETE their own inspection via a direct
+-- REST call no matter its status — the "completed inspections are locked
+-- except for managers" rule (checkInspectionEditPermission in
+-- app/inspector/inspections/actions.ts) was only enforced in the Next.js
+-- server action, not the database, so it was trivially bypassable by
+-- calling PostgREST directly with a valid inspector session. Replaced below
+-- (after current_inspector_active() is defined, which the replacements
+-- depend on) with narrower select/insert/update policies — see that block
+-- for the full explanation. No DELETE policy at all for inspectors: nothing
+-- in the app deletes an inspection, and a completed report should never be
+-- unilaterally erasable by the inspector who wrote it. Same reasoning
+-- applies to inspection_media below.
 drop policy if exists "Inspectors manage own inspections" on public.inspections;
-create policy "Inspectors manage own inspections"
-  on public.inspections for all
-  to authenticated
-  using (inspector_id = auth.uid())
-  with check (inspector_id = auth.uid());
-
 drop policy if exists "Inspectors manage own inspection media" on public.inspection_media;
-create policy "Inspectors manage own inspection media"
-  on public.inspection_media for all
-  to authenticated
-  using (
-    exists (
-      select 1 from public.inspections
-      where inspections.id = inspection_media.inspection_id
-        and inspections.inspector_id = auth.uid()
-    )
-  )
-  with check (
-    exists (
-      select 1 from public.inspections
-      where inspections.id = inspection_media.inspection_id
-        and inspections.inspector_id = auth.uid()
-    )
-  );
+
+-- Discovered via pg_policies introspection while verifying the fix above:
+-- three more legacy policies on public.inspections, left over from the
+-- original property-inspection product this Supabase project predates (see
+-- the big comment near the top of this file) and never removed when this
+-- schema.sql became the source of truth. Postgres OR's multiple permissive
+-- policies for the same command together, so
+-- "Inspectors can view own inspections" — an unconditional
+-- `inspector_id = auth.uid()` SELECT with no current_inspector_active()
+-- check — silently granted a deactivated inspector read access the whole
+-- time regardless of the replacement policy above. "...can insert own
+-- inspections" has the same gap for INSERT. "Customers can view their
+-- property inspections" is inert dead weight (this app has no customer
+-- login accounts, so customer_id = auth.uid() can never match) but is
+-- confusing to leave in place.
+drop policy if exists "Inspectors can view own inspections" on public.inspections;
+drop policy if exists "Inspectors can insert own inspections" on public.inspections;
+drop policy if exists "Customers can view their property inspections" on public.inspections;
 
 -- Customers are a shared roster across all inspectors (a small team booking
 -- the same customers), not siloed per inspector.
@@ -277,6 +285,19 @@ end $$;
 -- security definer + a dedicated function (rather than an inline subquery in
 -- each policy) avoids RLS recursion when this is used inside a policy on
 -- public.inspectors itself.
+--
+-- Security audit finding (2026-08-28): deactivating an inspector
+-- (deactivateInspector in app/inspector/manager/actions.ts) bans them in
+-- Supabase Auth and sets is_active = false, but banning doesn't revoke an
+-- already-issued access token — it only blocks future logins/refreshes.
+-- Nothing previously checked is_active at the data layer, so a deactivated
+-- inspector kept full read/write access to their own data (and, if they
+-- were a manager, everyone's) until their token happened to expire. Folding
+-- `and is_active` into is_manager(), plus the new
+-- current_inspector_active() below used by the owner-scoped policies, makes
+-- deactivation take effect on the next request regardless of token
+-- lifetime, since RLS re-evaluates this against live table state every
+-- query rather than trusting anything cached in the JWT.
 create or replace function public.is_manager()
 returns boolean
 language sql
@@ -286,9 +307,100 @@ stable
 as $$
   select exists (
     select 1 from public.inspectors
-    where id = auth.uid() and role = 'manager'
+    where id = auth.uid() and role = 'manager' and is_active
   );
 $$;
+
+create or replace function public.current_inspector_active()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.inspectors
+    where id = auth.uid() and is_active
+  );
+$$;
+
+-- Replacements for "Inspectors manage own inspections" / "...inspection
+-- media" (dropped above) — see the security audit comment there for why
+-- the single `for all` policy was unsafe. Inspectors can always read/create
+-- their own rows, but can only UPDATE an inspection (or its media) while
+-- `status = 'in_progress'`: the `using` clause checks the OLD row, so this
+-- blocks further edits the instant status flips to 'completed' — flipping
+-- it in the first place is still allowed since `with check` doesn't
+-- re-require in_progress. Uploading new media isn't status-gated (the app
+-- has never restricted that), only editing an existing item's tag. All of
+-- select/insert/update additionally require current_inspector_active(), so
+-- a deactivated inspector's access disappears on their very next request
+-- rather than waiting for their token to expire.
+drop policy if exists "Inspectors select own inspections" on public.inspections;
+create policy "Inspectors select own inspections"
+  on public.inspections for select
+  to authenticated
+  using (inspector_id = auth.uid() and public.current_inspector_active());
+
+drop policy if exists "Inspectors insert own inspections" on public.inspections;
+create policy "Inspectors insert own inspections"
+  on public.inspections for insert
+  to authenticated
+  with check (inspector_id = auth.uid() and public.current_inspector_active());
+
+drop policy if exists "Inspectors update own in-progress inspections" on public.inspections;
+create policy "Inspectors update own in-progress inspections"
+  on public.inspections for update
+  to authenticated
+  using (inspector_id = auth.uid() and status = 'in_progress' and public.current_inspector_active())
+  with check (inspector_id = auth.uid());
+
+drop policy if exists "Inspectors select own inspection media" on public.inspection_media;
+create policy "Inspectors select own inspection media"
+  on public.inspection_media for select
+  to authenticated
+  using (
+    public.current_inspector_active()
+    and exists (
+      select 1 from public.inspections
+      where inspections.id = inspection_media.inspection_id
+        and inspections.inspector_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Inspectors insert own inspection media" on public.inspection_media;
+create policy "Inspectors insert own inspection media"
+  on public.inspection_media for insert
+  to authenticated
+  with check (
+    public.current_inspector_active()
+    and exists (
+      select 1 from public.inspections
+      where inspections.id = inspection_media.inspection_id
+        and inspections.inspector_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Inspectors update own in-progress inspection media" on public.inspection_media;
+create policy "Inspectors update own in-progress inspection media"
+  on public.inspection_media for update
+  to authenticated
+  using (
+    public.current_inspector_active()
+    and exists (
+      select 1 from public.inspections
+      where inspections.id = inspection_media.inspection_id
+        and inspections.inspector_id = auth.uid()
+        and inspections.status = 'in_progress'
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.inspections
+      where inspections.id = inspection_media.inspection_id
+        and inspections.inspector_id = auth.uid()
+    )
+  );
 
 drop policy if exists "Managers view all inspectors" on public.inspectors;
 create policy "Managers view all inspectors"

@@ -43,14 +43,23 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (isProtectedInspectorRoute && user && pathname !== CHANGE_PASSWORD_ROUTE) {
+  if (isProtectedInspectorRoute && user) {
     const { data: inspector } = await supabase
       .from('inspectors')
-      .select('must_change_password')
+      .select('must_change_password, is_active')
       .eq('id', user.id)
       .maybeSingle();
 
-    if (inspector?.must_change_password) {
+    // See require-inspector.ts for why this check exists: banning a user
+    // doesn't revoke their already-issued session token.
+    if (inspector && !inspector.is_active) {
+      await supabase.auth.signOut();
+      const url = request.nextUrl.clone();
+      url.pathname = '/inspector/login';
+      return NextResponse.redirect(url);
+    }
+
+    if (inspector?.must_change_password && pathname !== CHANGE_PASSWORD_ROUTE) {
       const url = request.nextUrl.clone();
       url.pathname = CHANGE_PASSWORD_ROUTE;
       return NextResponse.redirect(url);
