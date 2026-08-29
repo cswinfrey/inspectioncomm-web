@@ -39,12 +39,13 @@ export default async function ReportPage({
     synopsis: string | null;
     checklist: InspectionChecklist;
     customers: { name: string } | null;
+    inspectors: { name: string } | null;
   };
 
   const { data: inspection } = await admin
     .from('inspections')
     .select(
-      'id, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, vehicle_color, license_plate, license_plate_state, fuel_type, engine_size, engine_cylinders, odometer_before, odometer_after, synopsis, checklist, customers(name)'
+      'id, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, vehicle_color, license_plate, license_plate_state, fuel_type, engine_size, engine_cylinders, odometer_before, odometer_after, synopsis, checklist, customers(name), inspectors(name)'
     )
     .eq('access_token', token)
     .single()
@@ -88,6 +89,10 @@ export default async function ReportPage({
           <div>
             <dt className="text-gray-500">Inspection type</dt>
             <dd className="text-white">{inspection.inspection_type}</dd>
+          </div>
+          <div>
+            <dt className="text-gray-500">Inspector</dt>
+            <dd className="text-white">{inspection.inspectors?.name || '—'}</dd>
           </div>
         </dl>
 
