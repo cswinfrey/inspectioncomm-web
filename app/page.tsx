@@ -106,7 +106,8 @@ export default function Home() {
 
       <footer className="px-4 py-10 border-t border-slate-700/60 text-center">
         <p className="text-gray-500 text-sm">
-          Serving Atlanta, Marietta, Sandy Springs, Roswell, and surrounding areas
+          Serving Atlanta and the extended metro area — Marietta, Sandy Springs, Roswell,
+          Kennesaw, Covington, Jonesboro, Douglasville, and beyond
         </p>
       </footer>
     </main>

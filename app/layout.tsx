@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "InspectionComm | Pre-Purchase Car Inspections",
   description:
-    "Professional pre-purchase vehicle inspections for the Atlanta metro area.",
+    "Professional pre-purchase vehicle inspections for Atlanta and the extended metro area, including Marietta, Kennesaw, Covington, Jonesboro, and Douglasville.",
 };
 
 export default function RootLayout({

@@ -5,7 +5,7 @@ import { SiteNav } from '@/app/components/SiteNav';
 export const metadata: Metadata = {
   title: 'Why InspectionComm',
   description:
-    'Unbiased, technician-trained pre-purchase vehicle inspections for the Atlanta metro area.',
+    'Unbiased, technician-trained pre-purchase vehicle inspections for Atlanta and the extended metro area, including Marietta, Kennesaw, Covington, Jonesboro, and Douglasville.',
 };
 
 export default function WhyPage() {
