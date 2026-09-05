@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>InspectionComm Field Guide</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --ink: #171b21;
+    --ink-soft: #444c58;
+    --muted: #6b7280;
+    --paper: #f4f5f7;
+    --surface: #ffffff;
+    --rule: #d9dde3;
+    --accent: #1f4fc4;
+    --accent-ink: #14356f;
+    --accent-soft: #e8eefb;
+    --caution: #8a4b06;
+    --caution-soft: #fbead2;
+    --caution-rule: #eecb99;
+    --code-bg: #eef0f3;
+    --step-digit: #c7d4ef;
+    --focus: #1f4fc4;
+    --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-serif: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;
+    --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #e7e9ed;
+      --ink-soft: #c1c6ce;
+      --muted: #9399a6;
+      --paper: #14171c;
+      --surface: #1b1f26;
+      --rule: #2c313b;
+      --accent: #6f9cf2;
+      --accent-ink: #dbe6fb;
+      --accent-soft: #1e2a44;
+      --caution: #f0b453;
+      --caution-soft: #3a2c14;
+      --caution-rule: #5c4620;
+      --code-bg: #23272f;
+      --step-digit: #2c3a5c;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ink: #e7e9ed;
+    --ink-soft: #c1c6ce;
+    --muted: #9399a6;
+    --paper: #14171c;
+    --surface: #1b1f26;
+    --rule: #2c313b;
+    --accent: #6f9cf2;
+    --accent-ink: #dbe6fb;
+    --accent-soft: #1e2a44;
+    --caution: #f0b453;
+    --caution-soft: #3a2c14;
+    --caution-rule: #5c4620;
+    --code-bg: #23272f;
+    --step-digit: #2c3a5c;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-serif);
+    font-size: 17px;
+    line-height: 1.65;
+  }
+
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-sans);
+    color: var(--ink);
+    text-wrap: balance;
+    line-height: 1.25;
+  }
+
+  code, .kbd {
+    font-family: var(--font-mono);
+    font-size: 0.86em;
+    background: var(--code-bg);
+    padding: 0.1em 0.45em;
+    border-radius: 3px;
+    color: var(--accent-ink);
+    white-space: nowrap;
+  }
+
+  /* ---------- Masthead ---------- */
+
+  .masthead {
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface);
+  }
+  .masthead-inner {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 2.6rem 1.5rem 2.2rem;
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.9rem;
+  }
+  .masthead h1 {
+    font-size: clamp(1.9rem, 4vw, 2.6rem);
+    font-weight: 700;
+    margin: 0 0 0.6rem;
+    letter-spacing: -0.01em;
+  }
+  .masthead p.dek {
+    font-family: var(--font-serif);
+    color: var(--ink-soft);
+    font-size: 1.1rem;
+    max-width: 46em;
+    margin: 0 0 1.4rem;
+  }
+  .masthead-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.2rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------- Layout ---------- */
+
+  .layout {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 3rem;
+  }
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Sidebar / TOC ---------- */
+
+  nav.toc {
+    position: sticky;
+    top: 1.75rem;
+    align-self: start;
+    padding-top: 2.4rem;
+    max-height: calc(100vh - 3.5rem);
+    overflow-y: auto;
+  }
+  nav.toc .toc-heading {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 0.8rem;
+  }
+  nav.toc ol {
+    list-style: none;
+    margin: 0 0 1.6rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    counter-reset: toc;
+  }
+  nav.toc li { counter-increment: toc; }
+  nav.toc a {
+    display: flex;
+    gap: 0.55rem;
+    font-family: var(--font-sans);
+    font-size: 0.86rem;
+    color: var(--ink-soft);
+    text-decoration: none;
+    line-height: 1.4;
+  }
+  nav.toc a::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--accent);
+    flex-shrink: 0;
+    padding-top: 0.05em;
+  }
+  nav.toc a:hover { color: var(--accent); }
+  nav.toc .toc-group + .toc-heading { margin-top: 0.4rem; }
+
+  @media (max-width: 860px) {
+    nav.toc {
+      position: static;
+      max-height: none;
+      padding-top: 1.6rem;
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 1.4rem;
+      margin-bottom: 0.4rem;
+    }
+    nav.toc ol { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 1rem; }
+  }
+
+  /* ---------- Main column ---------- */
+
+  main { min-width: 0; padding: 2.4rem 0 5rem; }
+
+  .part-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 3.6rem 0 1.6rem;
+  }
+  .part-divider:first-child { margin-top: 0; }
+  .part-divider .tag {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .part-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+
+  section.card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1.9rem 1.9rem 2.1rem;
+    margin-bottom: 1.4rem;
+    scroll-margin-top: 1.5rem;
+  }
+
+  .step-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+  .step-digit {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 1.5rem;
+    color: var(--step-digit);
+    line-height: 1;
+  }
+  section.card h2 {
+    font-size: 1.28rem;
+    font-weight: 600;
+    margin: 0;
+  }
+  section.card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 1.4rem 0 0.5rem;
+  }
+  section.card > .step-head + p,
+  section.card > .step-head + h3,
+  section.card > .step-head + ol,
+  section.card > .step-head + ul { margin-top: 0.9rem; }
+
+  p { margin: 0 0 1rem; color: var(--ink-soft); }
+  section.card > p:last-child,
+  section.card > ol:last-child,
+  section.card > ul:last-child,
+  section.card > .callout:last-child { margin-bottom: 0; }
+
+  ol.steps {
+    margin: 0 0 1rem;
+    padding-left: 0;
+    list-style: none;
+    counter-reset: sub;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+  ol.steps li {
+    counter-increment: sub;
+    padding-left: 1.9rem;
+    position: relative;
+    color: var(--ink-soft);
+  }
+  ol.steps li::before {
+    content: counter(sub) ".";
+    position: absolute;
+    left: 0;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--accent);
+  }
+
+  ul.plain {
+    margin: 0 0 1rem;
+    padding-left: 1.2rem;
+    color: var(--ink-soft);
+  }
+  ul.plain li { margin-bottom: 0.4rem; }
+
+  .callout {
+    display: flex;
+    gap: 0.8rem;
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--rule));
+    border-radius: 5px;
+    padding: 0.9rem 1.1rem;
+    margin: 1.1rem 0;
+    font-family: var(--font-sans);
+    font-size: 0.92rem;
+    color: var(--ink);
+  }
+  .callout .icon {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .callout.caution {
+    background: var(--caution-soft);
+    border-color: var(--caution-rule);
+  }
+  .callout.caution .icon { color: var(--caution); }
+  .callout p { margin: 0; color: inherit; }
+  .callout p + p { margin-top: 0.5rem; }
+
+  table.checklist-map {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-sans);
+    font-size: 0.88rem;
+    margin: 0.4rem 0 1rem;
+  }
+  table.checklist-map th, table.checklist-map td {
+    text-align: left;
+    padding: 0.55rem 0.7rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  table.checklist-map th {
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+  }
+  .table-wrap { overflow-x: auto; }
+
+  .field-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.5rem 0.9rem;
+    margin: 0.3rem 0 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+  }
+  .field-list span { color: var(--accent-ink); }
+
+  .manager-band {
+    background: linear-gradient(180deg, var(--accent-soft), transparent 140px);
+    margin: 0 -1.5rem;
+    padding: 0 1.5rem;
+  }
+  @media (max-width: 860px) { .manager-band { margin: 0; padding: 0; } }
+
+  footer.doc-footer {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 3.5rem;
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--rule);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    section.card { scroll-behavior: smooth; }
+  }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="masthead-inner">
+    <p class="eyebrow">InspectionComm &middot; Internal Reference</p>
+    <h1>Field Guide</h1>
+    <p class="dek">How to run an inspection start to finish in the InspectionComm app, and what managers need to keep the roster and incoming requests moving.</p>
+    <div class="masthead-meta">
+      <span>For inspectors &amp; managers</span>
+      <span>App version: live production</span>
+      <span>Last revised August 2026</span>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="toc" aria-label="Table of contents">
+    <p class="toc-heading">For inspectors</p>
+    <ol>
+      <li><a href="#getting-started">Getting started</a></li>
+      <li><a href="#dashboard">Your dashboard</a></li>
+      <li><a href="#new-inspection">Starting an inspection</a></li>
+      <li><a href="#checklist">The checklist</a></li>
+      <li><a href="#photos">Photos &amp; video</a></li>
+      <li><a href="#complete">Marking complete</a></li>
+      <li><a href="#report">Sharing the report</a></li>
+    </ol>
+    <p class="toc-heading">For managers</p>
+    <ol start="8">
+      <li><a href="#roster">Managing the roster</a></li>
+      <li><a href="#manager-view">Manager view</a></li>
+      <li><a href="#corrections">Correcting a report</a></li>
+      <li><a href="#requests">Triaging requests</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <div class="part-divider"><span class="tag">Part One — Inspectors</span></div>
+
+    <section class="card" id="getting-started">
+      <div class="step-head"><span class="step-digit">01</span><h2>Getting started</h2></div>
+      <p>A manager creates your account and gives you a temporary password directly — there's no public sign-up. The first time you log in, the app forces you to replace it before you can do anything else.</p>
+      <ol class="steps">
+        <li>Go to <code>/inspector/login</code> and sign in with the email and temporary password your manager gave you.</li>
+        <li>You'll land on <code>Change Password</code> automatically — this screen won't let you through until you set your own password.</li>
+        <li>From then on, log in normally at <code>/inspector/login</code> any time.</li>
+      </ol>
+      <div class="callout">
+        <span class="icon">i</span>
+        <p>Forgot your password? There's no self-service reset yet — ask a manager to set you a new temporary one from the roster.</p>
+      </div>
+    </section>
+
+    <section class="card" id="dashboard">
+      <div class="step-head"><span class="step-digit">02</span><h2>Your dashboard</h2></div>
+      <p>After logging in you see <strong>your own</strong> inspections only — not the whole team's. Each row shows the vehicle, customer, date, and status.</p>
+      <ul class="plain">
+        <li>Search by vehicle, VIN, or customer name using the search box.</li>
+        <li>Filter by status (<code>In progress</code> / <code>Completed</code>) and by date range.</li>
+        <li><code>New Inspection</code> starts a fresh one; if you're a manager, <code>Manager View</code> also appears here.</li>
+      </ul>
+    </section>
+
+    <section class="card" id="new-inspection">
+      <div class="step-head"><span class="step-digit">03</span><h2>Starting an inspection</h2></div>
+      <p>Click <code>New Inspection</code> and fill in what you know up front — you can always finish the details on the checklist screen afterward.</p>
+      <ol class="steps">
+        <li>Enter the customer's name and email. If they've been inspected before, start typing and pick them from the suggestions instead of creating a duplicate.</li>
+        <li>Enter what you have on the vehicle: VIN, year, mileage, make and model are required; color and plate can wait if you don't have them yet.</li>
+        <li>Set the inspection date and type, then <code>Create Inspection</code>.</li>
+      </ol>
+      <p>This takes you straight to the inspection's detail page, where the checklist and photo upload live.</p>
+    </section>
+
+    <section class="card" id="checklist">
+      <div class="step-head"><span class="step-digit">04</span><h2>The checklist</h2></div>
+      <p>The checklist is organized into the same sections you'd walk through on the vehicle itself. Every condition field has the same four options:</p>
+      <div class="field-list">
+        <div><span>Good</span></div>
+        <div><span>Fair</span></div>
+        <div><span>Poor</span></div>
+        <div><span>Not Applicable</span></div>
+      </div>
+      <p>Use <code>Not Applicable</code> rather than leaving a field blank when something genuinely doesn't apply to this vehicle — a blank field reads as "not checked," which is a different claim than "doesn't apply here."</p>
+      <div class="table-wrap">
+        <table class="checklist-map">
+          <thead><tr><th>Section</th><th>Covers</th></tr></thead>
+          <tbody>
+            <tr><td>Vehicle identity</td><td>Color, license plate &amp; state</td></tr>
+            <tr><td>Odometer</td><td>Reading before and after the inspection</td></tr>
+            <tr><td>Engine &amp; transmission</td><td>Fuel type (Gas / Diesel / Electric / Other), engine size &amp; cylinders, transmission type &amp; condition</td></tr>
+            <tr><td>Tires</td><td>Size, tread, condition</td></tr>
+            <tr><td>Exterior &amp; steering</td><td>Paint, suspension &amp; steering, power steering type &amp; condition</td></tr>
+            <tr><td>Fluids &amp; climate</td><td>Brake fluid level &amp; condition, fluid leaks (with notes), A/C &amp; heat</td></tr>
+            <tr><td>Interior electronics</td><td>Radio, heated/cooled seats, sunroof, rear tailgate</td></tr>
+            <tr><td>OBD scan</td><td>ECM, TCM, ABS, SRS, AWD/4WD — Pass, Codes Found, or Not Applicable</td></tr>
+            <tr><td>Notes &amp; synopsis</td><td>Your free-form notes, plus the overall synopsis that becomes your diagnosis on the customer's report</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>For fuel type, pick <code>Other</code> from the dropdown to get a text box if it's not gas, diesel, or electric.</p>
+      <p>Click <code>Save Checklist</code> any time — you don't have to finish in one sitting. Come back and keep editing as long as the inspection is still <code>In Progress</code>.</p>
+      <div class="callout caution">
+        <span class="icon">!</span>
+        <p>Once an inspection is marked <strong>Completed</strong>, the checklist locks for you. Only a manager can make further corrections — see <a href="#corrections">Correcting a report</a>. Don't mark it complete until you're actually done.</p>
+      </div>
+    </section>
+
+    <section class="card" id="photos">
+      <div class="step-head"><span class="step-digit">05</span><h2>Photos &amp; video</h2></div>
+      <p>Scroll to <code>Photos &amp; video</code> on the inspection page to upload evidence for what you found.</p>
+      <ol class="steps">
+        <li>Type a tag describing what the batch documents — start typing for suggestions like <code>Tires</code>, <code>Engine</code>, <code>Brakes / Fluids</code>, or write something more specific like <code>Left front tire</code>.</li>
+        <li>Choose one or several files at once — the whole batch gets that tag.</li>
+        <li>Each file uploads with its own progress indicator; if one fails, retry just that file without re-selecting the others.</li>
+      </ol>
+      <p>Photos group automatically by tag on the page and on the customer's report, so related shots stay together instead of one long unsorted strip. You can edit any photo's tag afterward by clicking it — useful for turning a batch tag like <code>Tires</code> into something more specific once you know which wheel it was.</p>
+    </section>
+
+    <section class="card" id="complete">
+      <div class="step-head"><span class="step-digit">06</span><h2>Marking complete</h2></div>
+      <p>When the checklist and photos are done, use the <code>Mark Complete</code> button near the top of the inspection page.</p>
+      <ul class="plain">
+        <li>Status changes to <code>Completed</code> and the report becomes final from your side.</li>
+        <li>You can reopen it yourself with <code>Reopen</code> if you catch something right away — but once you navigate off and come back, further edits need a manager (see above).</li>
+      </ul>
+    </section>
+
+    <section class="card" id="report">
+      <div class="step-head"><span class="step-digit">07</span><h2>Sharing the report</h2></div>
+      <p>Every inspection has a <code>Copy Report Link</code> button near the top of its page. That link is the entire access model — anyone who has it can view that one report, no login required. Text or email it straight to the customer.</p>
+      <p>The report page shows the checklist, all tagged photos, and the completing inspector's name — it's read-only regardless of status.</p>
+    </section>
+
+    <div class="manager-band">
+      <div class="part-divider"><span class="tag">Part Two — Managers</span></div>
+
+      <section class="card" id="roster">
+        <div class="step-head"><span class="step-digit">08</span><h2>Managing the roster</h2></div>
+        <p>Open <code>Manager View</code> from your dashboard.</p>
+        <h3>Adding an inspector</h3>
+        <ol class="steps">
+          <li>Enter their name, email, and a temporary password (8+ characters) — anything you choose, since they'll replace it on first login.</li>
+          <li>Tell them the temp password directly. There's no automated invite email.</li>
+        </ol>
+        <h3>Deactivating an inspector</h3>
+        <p>Click <code>Deactivate</code> next to their name. This cuts off their access immediately — both future logins and any session they're already in. Use <code>Reactivate</code> to restore it later. You can't deactivate your own account from here.</p>
+      </section>
+
+      <section class="card" id="manager-view">
+        <div class="step-head"><span class="step-digit">09</span><h2>Manager view</h2></div>
+        <p>Manager View shows the whole team's activity, not just your own:</p>
+        <ul class="plain">
+          <li>Inspections this month and total, at a glance.</li>
+          <li>A per-inspector count, so you can see who's carrying the load.</li>
+          <li>Every inspection across the team, with the same search/status/date filters as the personal dashboard.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="corrections">
+        <div class="step-head"><span class="step-digit">10</span><h2>Correcting a completed report</h2></div>
+        <p>Managers aren't locked out once an inspection is marked complete. Open it from Manager View like any other — the checklist, notes, synopsis, and photo tags are all still editable for you, so you can fix a mistake after the fact without asking the original inspector to reopen it.</p>
+      </section>
+
+      <section class="card" id="requests">
+        <div class="step-head"><span class="step-digit">11</span><h2>Triaging inspection requests</h2></div>
+        <p>The <code>Request an Inspection</code> form on the public website lands in <code>Requests</code>, linked from the dashboard — this is the team's shared lead inbox, visible to every inspector, not manager-only.</p>
+        <p>Each request shows the requestor's contact info, vehicle, and any notes they left. Move it through a status as you work it:</p>
+        <div class="field-list">
+          <div><span>New</span></div>
+          <div><span>Contacted</span></div>
+          <div><span>Scheduled</span></div>
+          <div><span>Closed</span></div>
+        </div>
+        <p>Once you've scheduled it, create the actual inspection the normal way from <code>New Inspection</code> — the request and the inspection aren't linked automatically, so carry the vehicle and contact details over yourself.</p>
+      </section>
+    </div>
+
+  </main>
+</div>
+
+<footer class="doc-footer">
+  InspectionComm Field Guide — internal use for inspectors and managers.
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,205 @@
+INSPECTIONCOMM FIELD GUIDE
+Internal Reference for Inspectors & Managers
+Last revised: August 2026
+================================================================
+
+How to run an inspection start to finish in the InspectionComm app,
+and what managers need to keep the roster and incoming requests moving.
+
+
+PART ONE -- INSPECTORS
+================================================================
+
+1. GETTING STARTED
+----------------------------------------------------------------
+A manager creates your account and gives you a temporary password
+directly -- there's no public sign-up. The first time you log in,
+the app forces you to replace it before you can do anything else.
+
+  1. Go to /inspector/login and sign in with the email and
+     temporary password your manager gave you.
+  2. You'll land on "Change Password" automatically -- this screen
+     won't let you through until you set your own password.
+  3. From then on, log in normally at /inspector/login any time.
+
+  NOTE: Forgot your password? There's no self-service reset yet --
+  ask a manager to set you a new temporary one from the roster.
+
+
+2. YOUR DASHBOARD
+----------------------------------------------------------------
+After logging in you see YOUR OWN inspections only -- not the whole
+team's. Each row shows the vehicle, customer, date, and status.
+
+  - Search by vehicle, VIN, or customer name using the search box.
+  - Filter by status (In progress / Completed) and by date range.
+  - "New Inspection" starts a fresh one; if you're a manager,
+    "Manager View" also appears here.
+
+
+3. STARTING AN INSPECTION
+----------------------------------------------------------------
+Click "New Inspection" and fill in what you know up front -- you
+can always finish the details on the checklist screen afterward.
+
+  1. Enter the customer's name and email. If they've been inspected
+     before, start typing and pick them from the suggestions
+     instead of creating a duplicate.
+  2. Enter what you have on the vehicle: VIN, year, mileage, make
+     and model are required; color and plate can wait if you don't
+     have them yet.
+  3. Set the inspection date and type, then click "Create Inspection".
+
+This takes you straight to the inspection's detail page, where the
+checklist and photo upload live.
+
+
+4. THE CHECKLIST
+----------------------------------------------------------------
+The checklist is organized into the same sections you'd walk
+through on the vehicle itself. Every condition field has the same
+four options:
+
+    Good | Fair | Poor | Not Applicable
+
+Use "Not Applicable" rather than leaving a field blank when
+something genuinely doesn't apply to this vehicle -- a blank field
+reads as "not checked," which is a different claim than "doesn't
+apply here."
+
+  Section                   | Covers
+  ---------------------------------------------------------------
+  Vehicle identity          | Color, license plate & state
+  Odometer                  | Reading before and after the
+                             | inspection
+  Engine & transmission     | Fuel type (Gas / Diesel / Electric /
+                             | Other), engine size & cylinders,
+                             | transmission type & condition
+  Tires                     | Size, tread, condition
+  Exterior & steering       | Paint, suspension & steering, power
+                             | steering type & condition
+  Fluids & climate          | Brake fluid level & condition, fluid
+                             | leaks (with notes), A/C & heat
+  Interior electronics      | Radio, heated/cooled seats, sunroof,
+                             | rear tailgate
+  OBD scan                  | ECM, TCM, ABS, SRS, AWD/4WD -- Pass,
+                             | Codes Found, or Not Applicable
+  Notes & synopsis          | Your free-form notes, plus the
+                             | overall synopsis that becomes your
+                             | diagnosis on the customer's report
+
+For fuel type, pick "Other" from the dropdown to get a text box if
+it's not gas, diesel, or electric.
+
+Click "Save Checklist" any time -- you don't have to finish in one
+sitting. Come back and keep editing as long as the inspection is
+still "In Progress."
+
+  CAUTION: Once an inspection is marked "Completed," the checklist
+  locks for you. Only a manager can make further corrections -- see
+  section 10, "Correcting a completed report." Don't mark it
+  complete until you're actually done.
+
+
+5. PHOTOS & VIDEO
+----------------------------------------------------------------
+Scroll to "Photos & video" on the inspection page to upload
+evidence for what you found.
+
+  1. Type a tag describing what the batch documents -- start typing
+     for suggestions like "Tires," "Engine," "Brakes / Fluids," or
+     write something more specific like "Left front tire."
+  2. Choose one or several files at once -- the whole batch gets
+     that tag.
+  3. Each file uploads with its own progress indicator; if one
+     fails, retry just that file without re-selecting the others.
+
+Photos group automatically by tag on the page and on the customer's
+report, so related shots stay together instead of one long
+unsorted strip. You can edit any photo's tag afterward by clicking
+it -- useful for turning a batch tag like "Tires" into something
+more specific once you know which wheel it was.
+
+
+6. MARKING COMPLETE
+----------------------------------------------------------------
+When the checklist and photos are done, use the "Mark Complete"
+button near the top of the inspection page.
+
+  - Status changes to "Completed" and the report becomes final from
+    your side.
+  - You can reopen it yourself with "Reopen" if you catch something
+    right away -- but once you navigate off and come back, further
+    edits need a manager (see above).
+
+
+7. SHARING THE REPORT
+----------------------------------------------------------------
+Every inspection has a "Copy Report Link" button near the top of
+its page. That link is the entire access model -- anyone who has it
+can view that one report, no login required. Text or email it
+straight to the customer.
+
+The report page shows the checklist, all tagged photos, and the
+completing inspector's name -- it's read-only regardless of status.
+
+
+PART TWO -- MANAGERS
+================================================================
+
+8. MANAGING THE ROSTER
+----------------------------------------------------------------
+Open "Manager View" from your dashboard.
+
+  Adding an inspector:
+    1. Enter their name, email, and a temporary password
+       (8+ characters) -- anything you choose, since they'll
+       replace it on first login.
+    2. Tell them the temp password directly. There's no automated
+       invite email.
+
+  Deactivating an inspector:
+    Click "Deactivate" next to their name. This cuts off their
+    access immediately -- both future logins and any session
+    they're already in. Use "Reactivate" to restore it later. You
+    can't deactivate your own account from here.
+
+
+9. MANAGER VIEW
+----------------------------------------------------------------
+Manager View shows the whole team's activity, not just your own:
+
+  - Inspections this month and total, at a glance.
+  - A per-inspector count, so you can see who's carrying the load.
+  - Every inspection across the team, with the same
+    search/status/date filters as the personal dashboard.
+
+
+10. CORRECTING A COMPLETED REPORT
+----------------------------------------------------------------
+Managers aren't locked out once an inspection is marked complete.
+Open it from Manager View like any other -- the checklist, notes,
+synopsis, and photo tags are all still editable for you, so you can
+fix a mistake after the fact without asking the original inspector
+to reopen it.
+
+
+11. TRIAGING INSPECTION REQUESTS
+----------------------------------------------------------------
+The "Request an Inspection" form on the public website lands in
+"Requests," linked from the dashboard -- this is the team's shared
+lead inbox, visible to every inspector, not manager-only.
+
+Each request shows the requestor's contact info, vehicle, and any
+notes they left. Move it through a status as you work it:
+
+    New -> Contacted -> Scheduled -> Closed
+
+Once you've scheduled it, create the actual inspection the normal
+way from "New Inspection" -- the request and the inspection aren't
+linked automatically, so carry the vehicle and contact details over
+yourself.
+
+================================================================
+InspectionComm Field Guide -- internal use for inspectors and
+managers.
