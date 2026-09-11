@@ -2,7 +2,11 @@ import Image from 'next/image';
 import { RequestInspectionForm } from '@/app/components/RequestInspectionForm';
 import { SiteNav } from '@/app/components/SiteNav';
 
-const PRICING = [
+type PricingTier =
+  | { label: string; detail: string | null; price: string }
+  | { label: string; items: { label: string; price: string }[] };
+
+const PRICING: PricingTier[] = [
   {
     label: 'Passenger vehicles & trucks',
     detail: 'Non-commercial',
@@ -20,8 +24,11 @@ const PRICING = [
   },
   {
     label: 'RV inspections',
-    detail: null,
-    price: '$215',
+    items: [
+      { label: 'Class C & van conversions', price: '$400' },
+      { label: '5th wheel & trailer', price: '$450' },
+      { label: 'Class A', price: '$750' },
+    ],
   },
   {
     label: 'Classic cars',
@@ -74,22 +81,41 @@ export default function Home() {
         <div className="max-w-2xl mx-auto">
           <h2 className="text-2xl font-bold text-white mb-6 text-center">Pricing</h2>
           <ul className="flex flex-col gap-2">
-            {PRICING.map((tier) => (
-              <li
-                key={tier.label}
-                className="flex items-center justify-between gap-4 bg-slate-800/60 rounded px-5 py-4"
-              >
-                <div>
-                  <div className="text-white font-semibold">{tier.label}</div>
-                  {tier.detail && (
-                    <div className="text-gray-400 text-sm leading-relaxed">{tier.detail}</div>
-                  )}
-                </div>
-                <div className="text-blue-400 font-bold text-lg whitespace-nowrap">
-                  {tier.price}
-                </div>
-              </li>
-            ))}
+            {PRICING.map((tier) =>
+              'items' in tier ? (
+                <li key={tier.label} className="bg-slate-800/60 rounded px-5 py-4">
+                  <div className="text-white font-semibold mb-2">{tier.label}</div>
+                  <ul className="flex flex-col gap-1.5">
+                    {tier.items.map((sub) => (
+                      <li
+                        key={sub.label}
+                        className="flex items-center justify-between gap-4 text-sm border-t border-slate-700/60 pt-1.5 first:border-t-0 first:pt-0"
+                      >
+                        <span className="text-gray-300">{sub.label}</span>
+                        <span className="text-blue-400 font-bold whitespace-nowrap">
+                          {sub.price}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ) : (
+                <li
+                  key={tier.label}
+                  className="flex items-center justify-between gap-4 bg-slate-800/60 rounded px-5 py-4"
+                >
+                  <div>
+                    <div className="text-white font-semibold">{tier.label}</div>
+                    {tier.detail && (
+                      <div className="text-gray-400 text-sm leading-relaxed">{tier.detail}</div>
+                    )}
+                  </div>
+                  <div className="text-blue-400 font-bold text-lg whitespace-nowrap">
+                    {tier.price}
+                  </div>
+                </li>
+              )
+            )}
           </ul>
         </div>
       </section>
