@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import { useRef, useState, useTransition } from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
   createInspection,
   type CreateInspectionState,
 } from '@/app/inspector/inspections/actions';
+import { decodeVinAction } from './actions';
 
 const initialState: CreateInspectionState = { status: 'idle', message: '' };
 
@@ -31,6 +33,49 @@ function SubmitButton() {
 
 export function NewInspectionForm({ customers }: { customers: Customer[] }) {
   const [state, formAction] = useActionState(createInspection, initialState);
+
+  const vinRef = useRef<HTMLInputElement>(null);
+  const yearRef = useRef<HTMLInputElement>(null);
+  const makeRef = useRef<HTMLInputElement>(null);
+  const modelRef = useRef<HTMLInputElement>(null);
+  const [decodeMessage, setDecodeMessage] = useState<{ text: string; isError: boolean } | null>(
+    null
+  );
+  const [isDecoding, startDecode] = useTransition();
+
+  function handleDecodeVin() {
+    const vin = vinRef.current?.value ?? '';
+    setDecodeMessage(null);
+    startDecode(async () => {
+      const result = await decodeVinAction(vin);
+      if (!result.ok) {
+        setDecodeMessage({ text: result.error, isError: true });
+        return;
+      }
+
+      // Fill in whatever came back, but never clobber something the
+      // inspector already typed themselves.
+      const filled: string[] = [];
+      if (result.year && yearRef.current && !yearRef.current.value) {
+        yearRef.current.value = String(result.year);
+        filled.push('year');
+      }
+      if (result.make && makeRef.current && !makeRef.current.value) {
+        makeRef.current.value = result.make;
+        filled.push('make');
+      }
+      if (result.model && modelRef.current && !modelRef.current.value) {
+        modelRef.current.value = result.model;
+        filled.push('model');
+      }
+
+      setDecodeMessage(
+        filled.length > 0
+          ? { text: `Filled in ${filled.join(', ')} from the VIN — check it over.`, isError: false }
+          : { text: 'Decoded, but those fields were already filled in.', isError: false }
+      );
+    });
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 px-4 py-12">
@@ -73,9 +118,35 @@ export function NewInspectionForm({ customers }: { customers: Customer[] }) {
 
           <fieldset className="flex flex-col gap-3">
             <legend className="text-gray-300 font-semibold mb-1">Vehicle</legend>
-            <input type="text" name="vehicle_vin" placeholder="VIN" className={inputClass} />
+            <div className="flex gap-2">
+              <input
+                ref={vinRef}
+                type="text"
+                name="vehicle_vin"
+                placeholder="VIN"
+                maxLength={17}
+                className={`${inputClass} uppercase`}
+              />
+              <button
+                type="button"
+                onClick={handleDecodeVin}
+                disabled={isDecoding}
+                className="px-4 py-3 bg-slate-700 text-white rounded font-semibold hover:bg-slate-600 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {isDecoding ? 'Decoding...' : 'Decode VIN'}
+              </button>
+            </div>
+            {decodeMessage && (
+              <p
+                aria-live="polite"
+                className={`text-sm -mt-1 ${decodeMessage.isError ? 'text-red-400' : 'text-green-400'}`}
+              >
+                {decodeMessage.text}
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <input
+                ref={yearRef}
                 type="number"
                 name="vehicle_year"
                 placeholder="Year"
@@ -90,6 +161,7 @@ export function NewInspectionForm({ customers }: { customers: Customer[] }) {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <input
+                ref={makeRef}
                 type="text"
                 name="vehicle_make"
                 placeholder="Make"
@@ -97,6 +169,7 @@ export function NewInspectionForm({ customers }: { customers: Customer[] }) {
                 className={inputClass}
               />
               <input
+                ref={modelRef}
                 type="text"
                 name="vehicle_model"
                 placeholder="Model"
