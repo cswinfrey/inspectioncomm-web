@@ -23,17 +23,17 @@ const PRICING: PricingTier[] = [
     price: '$225',
   },
   {
+    label: 'Classic cars',
+    detail: '1995 and older, across the board',
+    price: '$225',
+  },
+  {
     label: 'RV inspections',
     items: [
       { label: 'Class C & van conversions', price: '$400' },
       { label: '5th wheel & trailer', price: '$450' },
       { label: 'Class A', price: '$750' },
     ],
-  },
-  {
-    label: 'Classic cars',
-    detail: '1995 and older, across the board',
-    price: '$225',
   },
 ];
 
