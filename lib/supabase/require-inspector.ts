@@ -6,6 +6,7 @@ export type CurrentInspector = {
   id: string;
   name: string;
   email: string;
+  phone: string | null;
   role: string;
   must_change_password: boolean;
   is_active: boolean;
@@ -29,7 +30,7 @@ export async function requireInspector(options?: { allowMustChangePassword?: boo
 
   const { data: inspector } = await supabase
     .from('inspectors')
-    .select('id, name, email, role, must_change_password, is_active')
+    .select('id, name, email, phone, role, must_change_password, is_active')
     .eq('id', user.id)
     .single<CurrentInspector>();
 

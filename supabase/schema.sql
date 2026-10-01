@@ -586,3 +586,14 @@ create policy "Inspectors manage inspection requests"
 -- inspector picks "Other" (see FUEL_TYPE_OPTIONS in lib/inspection-checklist.ts).
 alter table public.inspections
   add column if not exists fuel_type text;
+
+-- Second inspection type: a warranty/repair-order diagnostic inspection,
+-- selected via a toggle at creation time (inspection_type = 'warranty' vs
+-- the existing 'pre-purchase'). Its fields are structurally unrelated to
+-- the pre-purchase `checklist` JSONB, so it gets its own column rather than
+-- overloading the existing one — see WarrantyChecklist in
+-- lib/warranty-checklist.ts for the documented shape. license_plate,
+-- fuel_type, engine_size, and engine_cylinders are shared with the
+-- pre-purchase checklist (same columns, same meaning for either type).
+alter table public.inspections
+  add column if not exists warranty_checklist jsonb not null default '{}'::jsonb;

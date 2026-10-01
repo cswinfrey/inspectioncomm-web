@@ -5,6 +5,12 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Condition, InspectionChecklist, ObdScanResult } from '@/lib/inspection-checklist';
+import type {
+  CoolantCondition,
+  WarrantyChecklist,
+  YesNo,
+  YesNoDetail,
+} from '@/lib/warranty-checklist';
 
 // Shared by any action that edits an inspection's checklist/media: the
 // owning inspector can edit while in_progress; a manager can always edit;
@@ -283,6 +289,102 @@ export async function updateInspectionChecklist(
 
   if (error) {
     return { status: 'error', message: 'Could not save the checklist.' };
+  }
+
+  revalidatePath(`/inspector/inspections/${inspectionId}`);
+  return { status: 'idle', message: 'Saved.' };
+}
+
+function checklistYesNo(formData: FormData, key: string): YesNo | undefined {
+  return checklistValue(formData, key) as YesNo | undefined;
+}
+
+function checklistYesNoDetail(formData: FormData, key: string): YesNoDetail | undefined {
+  const value = checklistYesNo(formData, `${key}_value`);
+  const details = checklistValue(formData, `${key}_details`);
+  if (!value && !details) return undefined;
+  return { value, details };
+}
+
+export async function updateWarrantyChecklist(
+  inspectionId: string,
+  _prevState: ChecklistState,
+  formData: FormData
+): Promise<ChecklistState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { status: 'error', message: 'Not authenticated.' };
+  }
+
+  const permission = await checkInspectionEditPermission(supabase, user.id, inspectionId);
+  if (!permission.ok) {
+    return { status: 'error', message: permission.error };
+  }
+
+  const warrantyChecklist: WarrantyChecklist = {
+    inspector_name: checklistValue(formData, 'inspector_name'),
+    inspector_phone: checklistValue(formData, 'inspector_phone'),
+    repair_order_number: checklistValue(formData, 'repair_order_number'),
+
+    vehicle_body_type: checklistValue(formData, 'vehicle_body_type'),
+    drivetrain: checklistValue(formData, 'drivetrain'),
+    tire_size_oem: checklistValue(formData, 'tire_size_oem'),
+    tire_size_actual: checklistValue(formData, 'tire_size_actual'),
+
+    labor_rate: checklistValue(formData, 'labor_rate'),
+    labor_rate_type: checklistValue(formData, 'labor_rate_type'),
+
+    modifications: checklistYesNoDetail(formData, 'modifications'),
+    signs_of_collision: checklistYesNoDetail(formData, 'signs_of_collision'),
+    signs_of_abuse_neglect: checklistYesNoDetail(formData, 'signs_of_abuse_neglect'),
+    commercial_signage: checklistYesNoDetail(formData, 'commercial_signage'),
+    hitch: checklistYesNoDetail(formData, 'hitch'),
+
+    engine_fluid_condition: checklistCondition(formData, 'engine_fluid_condition'),
+    engine_leaks: checklistYesNoDetail(formData, 'engine_leaks'),
+    transmission_fluid_level: checklistCondition(formData, 'transmission_fluid_level'),
+    transmission_leaks: checklistYesNoDetail(formData, 'transmission_leaks'),
+    power_steering_fluid_condition: checklistCondition(formData, 'power_steering_fluid_condition'),
+    coolant_level_condition: checklistValue(formData, 'coolant_level_condition') as
+      | CoolantCondition
+      | undefined,
+    coolant_leaks: checklistYesNoDetail(formData, 'coolant_leaks'),
+    hoses_condition: checklistCondition(formData, 'hoses_condition'),
+    belts_condition: checklistCondition(formData, 'belts_condition'),
+    air_filter_condition: checklistCondition(formData, 'air_filter_condition'),
+
+    teardown_observed: checklistYesNoDetail(formData, 'teardown_observed'),
+    tsbs_presented: checklistYesNoDetail(formData, 'tsbs_presented'),
+
+    inspector_observations: checklistValue(formData, 'inspector_observations'),
+    inspector_cause_of_failure: checklistValue(formData, 'inspector_cause_of_failure'),
+    verified_failures: checklistYesNo(formData, 'verified_failures'),
+    verbal_called_in: checklistYesNo(formData, 'verbal_called_in'),
+    person_spoken_with: checklistValue(formData, 'person_spoken_with'),
+  };
+
+  const fuelTypeChoice = optional(formData, 'fuel_type_choice');
+  const fuelType =
+    fuelTypeChoice === 'Other' ? optional(formData, 'fuel_type_other') : fuelTypeChoice;
+
+  const { error } = await supabase
+    .from('inspections')
+    .update({
+      license_plate: optional(formData, 'license_plate'),
+      license_plate_state: optional(formData, 'license_plate_state'),
+      fuel_type: fuelType,
+      engine_size: optional(formData, 'engine_size'),
+      engine_cylinders: optionalInt(formData, 'engine_cylinders'),
+      warranty_checklist: warrantyChecklist,
+    })
+    .eq('id', inspectionId);
+
+  if (error) {
+    return { status: 'error', message: 'Could not save the warranty checklist.' };
   }
 
   revalidatePath(`/inspector/inspections/${inspectionId}`);

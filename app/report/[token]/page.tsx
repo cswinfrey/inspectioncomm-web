@@ -2,7 +2,9 @@ import { notFound } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getReadUrls } from '@/lib/azure-media';
 import { ChecklistDisplay } from '@/components/ChecklistDisplay';
+import { WarrantyChecklistDisplay } from '@/components/WarrantyChecklistDisplay';
 import type { InspectionChecklist } from '@/lib/inspection-checklist';
+import { INSPECTION_TYPES, type WarrantyChecklist } from '@/lib/warranty-checklist';
 import { groupMediaByTag } from '@/lib/group-media';
 
 export default async function ReportPage({
@@ -38,6 +40,7 @@ export default async function ReportPage({
     odometer_after: number | null;
     synopsis: string | null;
     checklist: InspectionChecklist;
+    warranty_checklist: WarrantyChecklist;
     customers: { name: string } | null;
     inspectors: { name: string } | null;
   };
@@ -45,7 +48,7 @@ export default async function ReportPage({
   const { data: inspection } = await admin
     .from('inspections')
     .select(
-      'id, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, vehicle_color, license_plate, license_plate_state, fuel_type, engine_size, engine_cylinders, odometer_before, odometer_after, synopsis, checklist, customers(name), inspectors(name)'
+      'id, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, vehicle_color, license_plate, license_plate_state, fuel_type, engine_size, engine_cylinders, odometer_before, odometer_after, synopsis, checklist, warranty_checklist, customers(name), inspectors(name)'
     )
     .eq('access_token', token)
     .single()
@@ -88,7 +91,10 @@ export default async function ReportPage({
           </div>
           <div>
             <dt className="text-gray-500">Inspection type</dt>
-            <dd className="text-white">{inspection.inspection_type}</dd>
+            <dd className="text-white">
+              {INSPECTION_TYPES.find((t) => t.value === inspection.inspection_type)?.label ??
+                inspection.inspection_type}
+            </dd>
           </div>
           <div>
             <dt className="text-gray-500">Inspector</dt>
@@ -97,22 +103,37 @@ export default async function ReportPage({
         </dl>
 
         <div className="mb-8">
-          <h2 className="text-gray-500 text-sm mb-2">Inspection checklist</h2>
-          <ChecklistDisplay
-            core={{
-              vehicle_color: inspection.vehicle_color,
-              license_plate: inspection.license_plate,
-              license_plate_state: inspection.license_plate_state,
-              fuel_type: inspection.fuel_type,
-              engine_size: inspection.engine_size,
-              engine_cylinders: inspection.engine_cylinders,
-              odometer_before: inspection.odometer_before,
-              odometer_after: inspection.odometer_after,
-              notes: inspection.notes,
-              synopsis: inspection.synopsis,
-            }}
-            checklist={inspection.checklist ?? {}}
-          />
+          <h2 className="text-gray-500 text-sm mb-2">
+            {inspection.inspection_type === 'warranty' ? 'Warranty checklist' : 'Inspection checklist'}
+          </h2>
+          {inspection.inspection_type === 'warranty' ? (
+            <WarrantyChecklistDisplay
+              core={{
+                license_plate: inspection.license_plate,
+                license_plate_state: inspection.license_plate_state,
+                fuel_type: inspection.fuel_type,
+                engine_size: inspection.engine_size,
+                engine_cylinders: inspection.engine_cylinders,
+              }}
+              checklist={inspection.warranty_checklist ?? {}}
+            />
+          ) : (
+            <ChecklistDisplay
+              core={{
+                vehicle_color: inspection.vehicle_color,
+                license_plate: inspection.license_plate,
+                license_plate_state: inspection.license_plate_state,
+                fuel_type: inspection.fuel_type,
+                engine_size: inspection.engine_size,
+                engine_cylinders: inspection.engine_cylinders,
+                odometer_before: inspection.odometer_before,
+                odometer_after: inspection.odometer_after,
+                notes: inspection.notes,
+                synopsis: inspection.synopsis,
+              }}
+              checklist={inspection.checklist ?? {}}
+            />
+          )}
         </div>
 
         <div>
