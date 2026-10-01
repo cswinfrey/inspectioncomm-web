@@ -22,6 +22,29 @@ export default async function InspectorDashboardPage({
     customers: { name: string } | null;
   };
 
+  type AssignedRequestRow = {
+    id: string;
+    name: string;
+    vehicle_year: number | null;
+    vehicle_make: string | null;
+    vehicle_model: string | null;
+    vehicle_type: string;
+    location: string | null;
+    appointment_time: string | null;
+    status: string;
+  };
+
+  // A manager-assigned lead, not yet a real inspection record — see
+  // app/inspector/requests. Shown separately so an inspector sees what's on
+  // their schedule even before they've created the inspection for it.
+  const { data: assignedRequests } = await supabase
+    .from('inspection_requests')
+    .select('id, name, vehicle_year, vehicle_make, vehicle_model, vehicle_type, location, appointment_time, status')
+    .eq('assigned_inspector_id', user.id)
+    .not('status', 'eq', 'closed')
+    .order('appointment_time', { ascending: true, nullsFirst: false })
+    .returns<AssignedRequestRow[]>();
+
   // Explicitly scoped to the signed-in inspector's own inspections — this is
   // "my inspections", not the manager's all-inspectors view at /manager.
   // Managers also match the broader "Managers view all inspections" RLS
@@ -67,6 +90,37 @@ export default async function InspectorDashboardPage({
             </button>
           </form>
         </div>
+
+        {assignedRequests && assignedRequests.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-white mb-4">Your Assigned Requests</h2>
+            <ul className="flex flex-col gap-2">
+              {assignedRequests.map((req) => (
+                <li
+                  key={req.id}
+                  className="bg-slate-800/60 rounded px-4 py-3 flex items-center justify-between gap-4"
+                >
+                  <div>
+                    <div className="text-white font-medium">
+                      {req.name} &middot;{' '}
+                      {[req.vehicle_year, req.vehicle_make, req.vehicle_model]
+                        .filter(Boolean)
+                        .join(' ') || req.vehicle_type}
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      {req.location || 'Location not given'} &middot; {req.status}
+                    </div>
+                  </div>
+                  <div className="text-sm text-blue-400 font-semibold whitespace-nowrap">
+                    {req.appointment_time
+                      ? new Date(req.appointment_time).toLocaleString()
+                      : 'No time set'}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-white">Inspections</h2>

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { requireInspector } from '@/lib/supabase/require-inspector';
 import { RequestStatusSelect } from '@/app/inspector/requests/RequestStatusSelect';
+import { RequestAssignment } from '@/app/inspector/requests/RequestAssignment';
 
 type InspectionRequestRow = {
   id: string;
@@ -15,16 +16,30 @@ type InspectionRequestRow = {
   notes: string | null;
   status: string;
   created_at: string;
+  assigned_inspector_id: string | null;
+  appointment_time: string | null;
+  assigned_inspector: { name: string } | null;
 };
 
 export default async function InspectionRequestsPage() {
-  const { supabase } = await requireInspector();
+  const { supabase, inspector } = await requireInspector();
+  const isManager = inspector?.role === 'manager';
 
   const { data: requests } = await supabase
     .from('inspection_requests')
-    .select('*')
+    .select('*, assigned_inspector:inspectors!assigned_inspector_id(name)')
     .order('created_at', { ascending: false })
     .returns<InspectionRequestRow[]>();
+
+  // Only needed for the manager's assignment dropdown.
+  const { data: roster } = isManager
+    ? await supabase
+        .from('inspectors')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name')
+        .returns<{ id: string; name: string }[]>()
+    : { data: null };
 
   return (
     <main className="flex flex-col items-center min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 px-4 py-16">
@@ -43,7 +58,7 @@ export default async function InspectionRequestsPage() {
           <ul className="flex flex-col gap-2">
             {requests.map((req) => (
               <li key={req.id} className="bg-slate-800/60 rounded px-4 py-3">
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start justify-between gap-4 flex-wrap sm:flex-nowrap">
                   <div>
                     <div className="text-white font-medium">
                       {req.name} &middot;{' '}
@@ -66,7 +81,29 @@ export default async function InspectionRequestsPage() {
                       Submitted {new Date(req.created_at).toLocaleString()}
                     </div>
                   </div>
-                  <RequestStatusSelect requestId={req.id} status={req.status} />
+
+                  <div className="flex flex-col gap-2 items-start sm:items-end">
+                    <RequestStatusSelect requestId={req.id} status={req.status} />
+                    {isManager ? (
+                      <RequestAssignment
+                        requestId={req.id}
+                        inspectors={roster ?? []}
+                        assignedInspectorId={req.assigned_inspector_id}
+                        appointmentTime={req.appointment_time}
+                      />
+                    ) : (
+                      <div className="text-xs text-gray-400 text-left sm:text-right">
+                        <div>
+                          {req.assigned_inspector?.name
+                            ? `Assigned: ${req.assigned_inspector.name}`
+                            : 'Unassigned'}
+                        </div>
+                        {req.appointment_time && (
+                          <div>{new Date(req.appointment_time).toLocaleString()}</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </li>
             ))}
