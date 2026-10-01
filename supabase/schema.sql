@@ -586,3 +586,27 @@ create policy "Inspectors manage inspection requests"
 -- inspector picks "Other" (see FUEL_TYPE_OPTIONS in lib/inspection-checklist.ts).
 alter table public.inspections
   add column if not exists fuel_type text;
+
+-- Lets a manager assign an inspection request to a specific inspector and
+-- give it an appointment time (app/inspector/requests). Enforcement that
+-- only managers can SET these lives in the server action (assignRequest in
+-- app/inspector/requests/actions.ts), not RLS — same pattern as the
+-- manager-only roster actions, and consistent with inspection_requests
+-- already being a shared, everyone-can-update team inbox rather than a
+-- resource with per-row ownership.
+alter table public.inspection_requests
+  add column if not exists assigned_inspector_id uuid references public.inspectors(id),
+  add column if not exists appointment_time timestamptz;
+
+-- Needed so any inspector can see WHO on the team a request is assigned to
+-- (the assignment UI embeds inspectors(name) off inspection_requests, and
+-- PostgREST embeds are subject to RLS on the embedded table same as a
+-- direct query). Previously only "own profile" and "manager" could see an
+-- inspector row; this adds plain name/roster visibility for any active,
+-- logged-in inspector — the same "small shared team" visibility already
+-- granted on customers and inspection_requests, not a new trust boundary.
+drop policy if exists "Inspectors view roster" on public.inspectors;
+create policy "Inspectors view roster"
+  on public.inspectors for select
+  to authenticated
+  using (public.current_inspector_active());
