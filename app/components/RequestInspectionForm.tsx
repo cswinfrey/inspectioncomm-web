@@ -59,7 +59,6 @@ export function RequestInspectionForm() {
         <option value="Passenger vehicle or truck">Passenger vehicle or truck</option>
         <option value="Exotic">Exotic</option>
         <option value="Commercial truck or trailer">Commercial truck or trailer</option>
-        <option value="RV">RV</option>
         <option value="Classic car (1995 or older)">Classic car (1995 or older)</option>
       </select>
 
