@@ -9,6 +9,7 @@ import {
   type CreateInspectionState,
 } from '@/app/inspector/inspections/actions';
 import { decodeVinAction } from './actions';
+import { INSPECTION_TYPES } from '@/lib/warranty-checklist';
 
 const initialState: CreateInspectionState = { status: 'idle', message: '' };
 
@@ -33,6 +34,7 @@ function SubmitButton() {
 
 export function NewInspectionForm({ customers }: { customers: Customer[] }) {
   const [state, formAction] = useActionState(createInspection, initialState);
+  const [inspectionType, setInspectionType] = useState<string>(INSPECTION_TYPES[0].value);
 
   const vinRef = useRef<HTMLInputElement>(null);
   const yearRef = useRef<HTMLInputElement>(null);
@@ -85,7 +87,25 @@ export function NewInspectionForm({ customers }: { customers: Customer[] }) {
         </Link>
         <h1 className="text-2xl font-bold text-white mt-4 mb-8">New Inspection</h1>
 
+        <div className="flex gap-2 mb-6">
+          {INSPECTION_TYPES.map((type) => (
+            <button
+              key={type.value}
+              type="button"
+              onClick={() => setInspectionType(type.value)}
+              className={`flex-1 px-4 py-3 rounded font-semibold text-sm border ${
+                inspectionType === type.value
+                  ? 'bg-blue-600 border-blue-600 text-white'
+                  : 'bg-slate-800/60 border-slate-700 text-gray-300 hover:bg-slate-800'
+              }`}
+            >
+              {type.label}
+            </button>
+          ))}
+        </div>
+
         <form action={formAction} className="flex flex-col gap-6">
+          <input type="hidden" name="inspection_type" value={inspectionType} />
           <fieldset className="flex flex-col gap-3">
             <legend className="text-gray-300 font-semibold mb-1">Customer</legend>
             <input
@@ -201,13 +221,6 @@ export function NewInspectionForm({ customers }: { customers: Customer[] }) {
               name="inspection_date"
               required
               defaultValue={new Date().toISOString().slice(0, 10)}
-              className={inputClass}
-            />
-            <input
-              type="text"
-              name="inspection_type"
-              placeholder="Inspection type"
-              defaultValue="pre-purchase"
               className={inputClass}
             />
             <textarea

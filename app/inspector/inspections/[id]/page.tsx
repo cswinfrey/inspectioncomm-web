@@ -4,12 +4,15 @@ import { headers } from 'next/headers';
 import { requireInspector } from '@/lib/supabase/require-inspector';
 import { getReadUrls } from '@/lib/azure-media';
 import { ChecklistDisplay } from '@/components/ChecklistDisplay';
+import { WarrantyChecklistDisplay } from '@/components/WarrantyChecklistDisplay';
 import type { InspectionChecklist } from '@/lib/inspection-checklist';
+import { INSPECTION_TYPES, type WarrantyChecklist } from '@/lib/warranty-checklist';
 import { groupMediaByTag } from '@/lib/group-media';
 import { UploadMedia } from './UploadMedia';
 import { StatusToggle } from './StatusToggle';
 import { CopyReportLink } from './CopyReportLink';
 import { ChecklistForm } from './ChecklistForm';
+import { WarrantyChecklistForm } from './WarrantyChecklistForm';
 import { MediaTagInput } from './MediaTagInput';
 
 export default async function InspectionDetailPage({
@@ -43,13 +46,14 @@ export default async function InspectionDetailPage({
     odometer_after: number | null;
     synopsis: string | null;
     checklist: InspectionChecklist;
+    warranty_checklist: WarrantyChecklist;
     customers: { name: string; email: string } | null;
   };
 
   const { data: inspection } = await supabase
     .from('inspections')
     .select(
-      'id, inspector_id, access_token, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, vehicle_color, license_plate, license_plate_state, fuel_type, engine_size, engine_cylinders, odometer_before, odometer_after, synopsis, checklist, customers(name, email)'
+      'id, inspector_id, access_token, inspection_type, status, notes, inspection_date, vehicle_vin, vehicle_year, vehicle_make, vehicle_model, vehicle_mileage, vehicle_color, license_plate, license_plate_state, fuel_type, engine_size, engine_cylinders, odometer_before, odometer_after, synopsis, checklist, warranty_checklist, customers(name, email)'
     )
     .eq('id', id)
     .single()
@@ -112,7 +116,10 @@ export default async function InspectionDetailPage({
           </div>
           <div>
             <dt className="text-gray-500">Type</dt>
-            <dd className="text-white">{inspection.inspection_type}</dd>
+            <dd className="text-white">
+              {INSPECTION_TYPES.find((t) => t.value === inspection.inspection_type)?.label ??
+                inspection.inspection_type}
+            </dd>
           </div>
           <div>
             <dt className="text-gray-500">Customer email</dt>
@@ -120,35 +127,67 @@ export default async function InspectionDetailPage({
           </div>
         </dl>
 
-        {(() => {
-          const core = {
-            vehicle_color: inspection.vehicle_color,
-            license_plate: inspection.license_plate,
-            license_plate_state: inspection.license_plate_state,
-            fuel_type: inspection.fuel_type,
-            engine_size: inspection.engine_size,
-            engine_cylinders: inspection.engine_cylinders,
-            odometer_before: inspection.odometer_before,
-            odometer_after: inspection.odometer_after,
-            notes: inspection.notes,
-            synopsis: inspection.synopsis,
-          };
+        {inspection.inspection_type === 'warranty' ? (
+          <div className="mb-8">
+            <h2 className="text-gray-500 text-sm mb-2">Warranty checklist</h2>
+            {canEditChecklist ? (
+              <WarrantyChecklistForm
+                inspectionId={id}
+                core={{
+                  license_plate: inspection.license_plate,
+                  license_plate_state: inspection.license_plate_state,
+                  fuel_type: inspection.fuel_type,
+                  engine_size: inspection.engine_size,
+                  engine_cylinders: inspection.engine_cylinders,
+                }}
+                checklist={inspection.warranty_checklist ?? {}}
+                defaultInspectorName={inspector?.name ?? ''}
+                defaultInspectorPhone={inspector?.phone ?? ''}
+              />
+            ) : (
+              <WarrantyChecklistDisplay
+                core={{
+                  license_plate: inspection.license_plate,
+                  license_plate_state: inspection.license_plate_state,
+                  fuel_type: inspection.fuel_type,
+                  engine_size: inspection.engine_size,
+                  engine_cylinders: inspection.engine_cylinders,
+                }}
+                checklist={inspection.warranty_checklist ?? {}}
+              />
+            )}
+          </div>
+        ) : (
+          (() => {
+            const core = {
+              vehicle_color: inspection.vehicle_color,
+              license_plate: inspection.license_plate,
+              license_plate_state: inspection.license_plate_state,
+              fuel_type: inspection.fuel_type,
+              engine_size: inspection.engine_size,
+              engine_cylinders: inspection.engine_cylinders,
+              odometer_before: inspection.odometer_before,
+              odometer_after: inspection.odometer_after,
+              notes: inspection.notes,
+              synopsis: inspection.synopsis,
+            };
 
-          return (
-            <div className="mb-8">
-              <h2 className="text-gray-500 text-sm mb-2">Inspection checklist</h2>
-              {canEditChecklist ? (
-                <ChecklistForm
-                  inspectionId={id}
-                  core={core}
-                  checklist={inspection.checklist ?? {}}
-                />
-              ) : (
-                <ChecklistDisplay core={core} checklist={inspection.checklist ?? {}} />
-              )}
-            </div>
-          );
-        })()}
+            return (
+              <div className="mb-8">
+                <h2 className="text-gray-500 text-sm mb-2">Inspection checklist</h2>
+                {canEditChecklist ? (
+                  <ChecklistForm
+                    inspectionId={id}
+                    core={core}
+                    checklist={inspection.checklist ?? {}}
+                  />
+                ) : (
+                  <ChecklistDisplay core={core} checklist={inspection.checklist ?? {}} />
+                )}
+              </div>
+            );
+          })()
+        )}
 
         <div>
           <h2 className="text-gray-500 text-sm mb-2">
