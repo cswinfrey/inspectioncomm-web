@@ -621,3 +621,10 @@ create policy "Inspectors view roster"
 -- pre-purchase checklist (same columns, same meaning for either type).
 alter table public.inspections
   add column if not exists warranty_checklist jsonb not null default '{}'::jsonb;
+
+-- Free-text description of what a photo/video shows (e.g. "Oil seeping
+-- from the rear main seal"), entered per file at upload time and editable
+-- afterwards — the tag above groups media, this explains it. Shown on the
+-- customer report. Same update rules as tag (existing policies cover it).
+alter table public.inspection_media
+  add column if not exists description text;

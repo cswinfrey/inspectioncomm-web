@@ -96,7 +96,8 @@ export async function recordInspectionMedia(
   fileType: string,
   fileName: string,
   fileSizeBytes: number,
-  tag?: string
+  tag?: string,
+  description?: string
 ): Promise<RecordMediaResult> {
   const supabase = await createClient();
   const {
@@ -114,6 +115,7 @@ export async function recordInspectionMedia(
     file_name: fileName,
     file_size_bytes: fileSizeBytes,
     tag: tag?.trim() || null,
+    description: description?.trim() || null,
   });
 
   if (error) {
@@ -128,6 +130,28 @@ export async function updateMediaTag(
   mediaId: string,
   inspectionId: string,
   tag: string
+): Promise<RecordMediaResult> {
+  return updateMediaField(mediaId, inspectionId, { tag: tag.trim() || null }, 'label');
+}
+
+export async function updateMediaDescription(
+  mediaId: string,
+  inspectionId: string,
+  description: string
+): Promise<RecordMediaResult> {
+  return updateMediaField(
+    mediaId,
+    inspectionId,
+    { description: description.trim() || null },
+    'description'
+  );
+}
+
+async function updateMediaField(
+  mediaId: string,
+  inspectionId: string,
+  patch: { tag: string | null } | { description: string | null },
+  fieldLabel: string
 ): Promise<RecordMediaResult> {
   const supabase = await createClient();
   const {
@@ -145,11 +169,11 @@ export async function updateMediaTag(
 
   const { error } = await supabase
     .from('inspection_media')
-    .update({ tag: tag.trim() || null })
+    .update(patch)
     .eq('id', mediaId);
 
   if (error) {
-    return { ok: false, error: 'Could not update the label.' };
+    return { ok: false, error: `Could not update the ${fieldLabel}.` };
   }
 
   revalidatePath(`/inspector/inspections/${inspectionId}`);
