@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useRef, useState, useTransition } from 'react';
+import { useEffect, useId, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUploadUrl, recordInspectionMedia } from '@/app/inspector/inspections/media-actions';
 import { MEDIA_TAG_SUGGESTIONS } from '@/lib/inspection-checklist';
@@ -16,6 +16,7 @@ async function uploadOnce(
   inspectionId: string,
   file: File,
   tag: string,
+  description: string,
   onProgress: (pct: number) => void
 ) {
   const result = await getUploadUrl(inspectionId, file.name, file.type, file.size);
@@ -47,7 +48,8 @@ async function uploadOnce(
     file.type,
     file.name,
     file.size,
-    tag
+    tag,
+    description
   );
   if (!record.ok) {
     throw new Error(record.error);
@@ -56,7 +58,9 @@ async function uploadOnce(
 
 type QueueItem = {
   file: File;
-  status: 'pending' | 'uploading' | 'retrying' | 'done' | 'error';
+  description: string;
+  previewUrl: string;
+  status: 'staged' | 'pending' | 'uploading' | 'retrying' | 'done' | 'error';
   progress: number;
   error?: string;
 };
@@ -69,11 +73,28 @@ export function UploadMedia({ inspectionId }: { inspectionId: string }) {
   const [isPending, startTransition] = useTransition();
   const tagListId = useId();
 
+  // Object URLs for the staged-file thumbnails hold the file in memory until
+  // revoked, so release them whenever the queue is replaced or unmounted.
+  const previewUrlsRef = useRef<string[]>([]);
+  function replaceQueue(next: QueueItem[]) {
+    previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    previewUrlsRef.current = next.map((item) => item.previewUrl);
+    setQueue(next);
+  }
+  useEffect(() => {
+    return () => previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+  }, []);
+
   function updateItem(index: number, patch: Partial<QueueItem>) {
     setQueue((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
   }
 
-  async function runUploadForIndex(index: number, file: File, batchTag: string) {
+  async function runUploadForIndex(
+    index: number,
+    file: File,
+    batchTag: string,
+    description: string
+  ) {
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       updateItem(index, {
         status: attempt > 1 ? 'retrying' : 'uploading',
@@ -81,7 +102,7 @@ export function UploadMedia({ inspectionId }: { inspectionId: string }) {
         error: undefined,
       });
       try {
-        await uploadOnce(inspectionId, file, batchTag, (pct) => updateItem(index, { progress: pct }));
+        await uploadOnce(inspectionId, file, batchTag, description, (pct) => updateItem(index, { progress: pct }));
         updateItem(index, { status: 'done', progress: 100 });
         router.refresh();
         return;
@@ -96,28 +117,40 @@ export function UploadMedia({ inspectionId }: { inspectionId: string }) {
     }
   }
 
-  function processBatch(files: File[], batchTag: string) {
-    startTransition(async () => {
-      for (let i = 0; i < files.length; i++) {
-        await runUploadForIndex(i, files[i], batchTag);
-      }
-    });
-  }
-
+  // Picking files only stages them, so the inspector can describe each one
+  // before anything is sent; the upload starts from the Upload button.
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
     if (files.length === 0) return;
-    setQueue(files.map((file) => ({ file, status: 'pending', progress: 0 })));
-    processBatch(files, tag);
+    replaceQueue(
+      files.map((file) => ({
+        file,
+        description: '',
+        previewUrl: URL.createObjectURL(file),
+        status: 'staged' as const,
+        progress: 0,
+      }))
+    );
     if (inputRef.current) inputRef.current.value = '';
+  }
+
+  function handleUpload() {
+    const items = queue;
+    setQueue((prev) => prev.map((item) => ({ ...item, status: 'pending' })));
+    startTransition(async () => {
+      for (let i = 0; i < items.length; i++) {
+        await runUploadForIndex(i, items[i].file, tag, items[i].description);
+      }
+    });
   }
 
   function handleRetry(index: number) {
     const item = queue[index];
     if (!item) return;
-    startTransition(() => runUploadForIndex(index, item.file, tag));
+    startTransition(() => runUploadForIndex(index, item.file, tag, item.description));
   }
 
+  const isStaged = queue.length > 0 && queue.every((item) => item.status === 'staged');
   const hasErrors = queue.some((item) => item.status === 'error');
   const allDone = queue.length > 0 && queue.every((item) => item.status === 'done');
 
@@ -148,7 +181,7 @@ export function UploadMedia({ inspectionId }: { inspectionId: string }) {
         accept="image/*,video/*"
         multiple
         onChange={handleFileChange}
-        disabled={isPending}
+        disabled={isPending || (queue.length > 0 && !isStaged && !allDone && !hasErrors)}
         className="text-sm text-gray-300"
       />
 
@@ -156,6 +189,37 @@ export function UploadMedia({ inspectionId }: { inspectionId: string }) {
         <ul className="mt-3 flex flex-col gap-2">
           {queue.map((item, i) => (
             <li key={`${item.file.name}-${i}`} className="text-xs">
+              {item.status === 'staged' && (
+                <div className="flex gap-2 items-start">
+                  {item.file.type.startsWith('image/') ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.previewUrl}
+                      alt={item.file.name}
+                      className="w-16 h-16 object-cover rounded shrink-0"
+                    />
+                  ) : (
+                    <video
+                      src={item.previewUrl}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="w-16 h-16 object-cover rounded shrink-0 bg-slate-800"
+                    />
+                  )}
+                  <label className="flex-1 flex flex-col gap-1 text-gray-400 min-w-0">
+                    <span className="truncate">{item.file.name}</span>
+                    <textarea
+                      value={item.description}
+                      onChange={(e) => updateItem(i, { description: e.target.value })}
+                      placeholder="Describe what this shows (optional)"
+                      rows={2}
+                      className="w-full px-2 py-1 rounded bg-white text-slate-900 placeholder-gray-500 focus:outline-none text-sm"
+                    />
+                  </label>
+                </div>
+              )}
+              {item.status !== 'staged' && (
               <div className="flex items-center justify-between text-gray-400">
                 <span className="truncate max-w-[70%]">{item.file.name}</span>
                 <span>
@@ -165,6 +229,7 @@ export function UploadMedia({ inspectionId }: { inspectionId: string }) {
                     `${item.progress}%`}
                 </span>
               </div>
+              )}
               {(item.status === 'uploading' || item.status === 'retrying') && (
                 <div className="w-full bg-slate-700 rounded h-1.5 overflow-hidden mt-1">
                   <div
@@ -191,6 +256,23 @@ export function UploadMedia({ inspectionId }: { inspectionId: string }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {isStaged && (
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={handleUpload}
+            className="px-3 py-1.5 rounded bg-blue-600 text-white text-sm hover:bg-blue-500"
+          >
+            Upload {queue.length} {queue.length === 1 ? 'file' : 'files'}
+          </button>
+          <button
+            onClick={() => replaceQueue([])}
+            className="px-3 py-1.5 rounded bg-slate-700 text-white text-sm hover:bg-slate-600"
+          >
+            Cancel
+          </button>
+        </div>
       )}
 
       {allDone && !hasErrors && (

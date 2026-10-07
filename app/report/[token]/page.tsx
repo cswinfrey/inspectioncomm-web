@@ -153,7 +153,7 @@ export default async function ReportPage({
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={item.read_url}
-                              alt={item.file_name}
+                              alt={item.description || item.file_name}
                               className="w-full aspect-square object-cover rounded"
                             />
                           ) : (
@@ -162,6 +162,11 @@ export default async function ReportPage({
                             </div>
                           )}
                         </a>
+                        {item.description && (
+                          <p className="mt-1 text-xs text-gray-300 whitespace-pre-line">
+                            {item.description}
+                          </p>
+                        )}
                       </li>
                     ))}
                   </ul>

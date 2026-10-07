@@ -14,6 +14,7 @@ import { CopyReportLink } from './CopyReportLink';
 import { ChecklistForm } from './ChecklistForm';
 import { WarrantyChecklistForm } from './WarrantyChecklistForm';
 import { MediaTagInput } from './MediaTagInput';
+import { MediaDescriptionInput } from './MediaDescriptionInput';
 
 export default async function InspectionDetailPage({
   params,
@@ -211,12 +212,25 @@ export default async function InspectionDetailPage({
                         >
                           {item.file_name}
                         </a>
-                        {canEditChecklist && (
-                          <MediaTagInput
-                            mediaId={item.id}
-                            inspectionId={id}
-                            initialTag={item.tag}
-                          />
+                        {canEditChecklist ? (
+                          <>
+                            <MediaTagInput
+                              mediaId={item.id}
+                              inspectionId={id}
+                              initialTag={item.tag}
+                            />
+                            <MediaDescriptionInput
+                              mediaId={item.id}
+                              inspectionId={id}
+                              initialDescription={item.description}
+                            />
+                          </>
+                        ) : (
+                          item.description && (
+                            <p className="mt-1 text-xs text-gray-300 whitespace-pre-line">
+                              {item.description}
+                            </p>
+                          )
                         )}
                       </li>
                     ))}
