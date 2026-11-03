@@ -4,7 +4,12 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Condition, InspectionChecklist, ObdScanResult } from '@/lib/inspection-checklist';
+import {
+  TIRE_POSITIONS,
+  type Condition,
+  type InspectionChecklist,
+  type ObdScanResult,
+} from '@/lib/inspection-checklist';
 import type {
   CoolantCondition,
   WarrantyChecklist,
@@ -223,8 +228,15 @@ export async function updateInspectionChecklist(
   const checklist: InspectionChecklist = {
     tires: {
       size: checklistValue(formData, 'tires_size'),
-      condition: checklistCondition(formData, 'tires_condition'),
-      tread: checklistValue(formData, 'tires_tread'),
+      ...Object.fromEntries(
+        TIRE_POSITIONS.map(({ key }) => [
+          key,
+          {
+            tread: checklistValue(formData, `tires_${key}_tread`),
+            condition: checklistCondition(formData, `tires_${key}_condition`),
+          },
+        ])
+      ),
     },
     paint: {
       condition: checklistCondition(formData, 'paint_condition'),

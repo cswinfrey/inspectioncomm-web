@@ -1,4 +1,4 @@
-import type { InspectionChecklist } from '@/lib/inspection-checklist';
+import { TIRE_POSITIONS, type InspectionChecklist } from '@/lib/inspection-checklist';
 
 type CoreFields = {
   vehicle_color: string | null;
@@ -67,8 +67,18 @@ export function ChecklistDisplay({
 
       <Section title="Tires">
         <Field label="Size" value={checklist.tires?.size} />
-        <Field label="Tread" value={checklist.tires?.tread} />
-        <Field label="Condition" value={checklist.tires?.condition} />
+        <div />
+        {TIRE_POSITIONS.map(({ key, label }) => (
+          <div key={key} className="contents">
+            <Field label={`${label} tread`} value={checklist.tires?.[key]?.tread} />
+            <Field label={`${label} condition`} value={checklist.tires?.[key]?.condition} />
+          </div>
+        ))}
+        {/* Reports saved before per-tire fields existed */}
+        {checklist.tires?.tread && <Field label="Tread (all)" value={checklist.tires.tread} />}
+        {checklist.tires?.condition && (
+          <Field label="Condition (all)" value={checklist.tires.condition} />
+        )}
       </Section>
 
       <Section title="Exterior & steering">

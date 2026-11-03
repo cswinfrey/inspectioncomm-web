@@ -24,8 +24,24 @@ export const MEDIA_TAG_SUGGESTIONS = [
 ] as const;
 export type ObdScanResult = (typeof OBD_SCAN_OPTIONS)[number];
 
+// Each tire is recorded separately. The older single tires.tread /
+// tires.condition values are kept on the type so reports saved before
+// per-tire fields existed still display.
+export const TIRE_POSITIONS = [
+  { key: 'front_left', label: 'Front left' },
+  { key: 'front_right', label: 'Front right' },
+  { key: 'rear_left', label: 'Rear left' },
+  { key: 'rear_right', label: 'Rear right' },
+] as const;
+export type TirePosition = (typeof TIRE_POSITIONS)[number]['key'];
+export type TireStatus = { tread?: string; condition?: Condition };
+
 export type InspectionChecklist = {
-  tires?: { size?: string; condition?: Condition; tread?: string };
+  tires?: {
+    size?: string;
+    condition?: Condition;
+    tread?: string;
+  } & Partial<Record<TirePosition, TireStatus>>;
   paint?: { condition?: Condition };
   transmission?: { type?: string; condition?: Condition };
   suspension_steering?: { condition?: Condition };

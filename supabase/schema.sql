@@ -475,7 +475,9 @@ end $$;
 -- repeated "X condition" shape lives in one JSONB checklist column so new
 -- checklist items don't need a migration each time. Shape (documented here,
 -- not enforced by the DB — see app/inspector/inspections/checklist.ts):
---   tires: { size, condition, tread }
+--   tires: { size, front_left, front_right, rear_left, rear_right }
+--     (each tire: { tread, condition }; older rows may have a single
+--     tires.tread / tires.condition instead)
 --   paint: { condition }
 --   transmission: { type, condition }
 --   suspension_steering: { condition }

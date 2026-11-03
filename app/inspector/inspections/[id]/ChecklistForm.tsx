@@ -11,6 +11,7 @@ import {
   CONDITION_OPTIONS,
   FUEL_TYPE_OPTIONS,
   OBD_SCAN_OPTIONS,
+  TIRE_POSITIONS,
   type InspectionChecklist,
 } from '@/lib/inspection-checklist';
 
@@ -211,12 +212,21 @@ export function ChecklistForm({
       <fieldset className="grid grid-cols-2 gap-3">
         <legend className="text-gray-300 font-semibold mb-1 col-span-2">Tires</legend>
         <TextField name="tires_size" label="Size" defaultValue={checklist.tires?.size} />
-        <TextField name="tires_tread" label="Tread" defaultValue={checklist.tires?.tread} />
-        <ConditionField
-          name="tires_condition"
-          label="Condition"
-          defaultValue={checklist.tires?.condition}
-        />
+        <div />
+        {TIRE_POSITIONS.map(({ key, label }) => (
+          <div key={key} className="contents">
+            <TextField
+              name={`tires_${key}_tread`}
+              label={`${label} tread`}
+              defaultValue={checklist.tires?.[key]?.tread}
+            />
+            <ConditionField
+              name={`tires_${key}_condition`}
+              label={`${label} condition`}
+              defaultValue={checklist.tires?.[key]?.condition}
+            />
+          </div>
+        ))}
       </fieldset>
 
       <fieldset className="grid grid-cols-2 gap-3">
