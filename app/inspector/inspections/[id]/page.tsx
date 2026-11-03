@@ -9,6 +9,7 @@ import type { InspectionChecklist } from '@/lib/inspection-checklist';
 import { INSPECTION_TYPES, type WarrantyChecklist } from '@/lib/warranty-checklist';
 import { groupMediaByTag } from '@/lib/group-media';
 import { UploadMedia } from './UploadMedia';
+import { RemoveMediaButton } from './RemoveMediaButton';
 import { StatusToggle } from './StatusToggle';
 import { CopyReportLink } from './CopyReportLink';
 import { ChecklistForm } from './ChecklistForm';
@@ -223,6 +224,11 @@ export default async function InspectionDetailPage({
                               mediaId={item.id}
                               inspectionId={id}
                               initialDescription={item.description}
+                            />
+                            <RemoveMediaButton
+                              mediaId={item.id}
+                              inspectionId={id}
+                              fileName={item.file_name}
                             />
                           </>
                         ) : (

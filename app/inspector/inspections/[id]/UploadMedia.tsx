@@ -73,14 +73,25 @@ export function UploadMedia({ inspectionId }: { inspectionId: string }) {
   const [isPending, startTransition] = useTransition();
   const tagListId = useId();
 
-  // Object URLs for the staged-file thumbnails hold the file in memory until
-  // revoked, so release them whenever the queue is replaced or unmounted.
+  // Object URLs for local thumbnails hold files in memory until revoked.
   const previewUrlsRef = useRef<string[]>([]);
-  function replaceQueue(next: QueueItem[]) {
-    previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-    previewUrlsRef.current = next.map((item) => item.previewUrl);
-    setQueue(next);
+  function removeQueueItem(index: number) {
+    const item = queue[index];
+    if (!item) return;
+    URL.revokeObjectURL(item.previewUrl);
+    previewUrlsRef.current = previewUrlsRef.current.filter((url) => url !== item.previewUrl);
+    setQueue((prev) => prev.filter((_, i) => i !== index));
   }
+
+  function clearStagedItems() {
+    const stagedUrls = new Set(
+      queue.filter((item) => item.status === 'staged').map((item) => item.previewUrl)
+    );
+    stagedUrls.forEach((url) => URL.revokeObjectURL(url));
+    previewUrlsRef.current = previewUrlsRef.current.filter((url) => !stagedUrls.has(url));
+    setQueue((prev) => prev.filter((item) => item.status !== 'staged'));
+  }
+
   useEffect(() => {
     return () => previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
   }, []);
@@ -117,29 +128,37 @@ export function UploadMedia({ inspectionId }: { inspectionId: string }) {
     }
   }
 
-  // Picking files only stages them, so the inspector can describe each one
-  // before anything is sent; the upload starts from the Upload button.
+  // Picking files stages them so the inspector can describe them before upload.
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
     if (files.length === 0) return;
-    replaceQueue(
-      files.map((file) => ({
+    const additions = files.map((file) => ({
         file,
         description: '',
         previewUrl: URL.createObjectURL(file),
         status: 'staged' as const,
         progress: 0,
-      }))
-    );
+    }));
+    previewUrlsRef.current = [
+      ...previewUrlsRef.current,
+      ...additions.map((item) => item.previewUrl),
+    ];
+    setQueue((prev) => [...prev, ...additions]);
     if (inputRef.current) inputRef.current.value = '';
   }
 
   function handleUpload() {
-    const items = queue;
-    setQueue((prev) => prev.map((item) => ({ ...item, status: 'pending' })));
+    const items = queue
+      .map((item, index) => ({ item, index }))
+      .filter(({ item }) => item.status === 'staged');
+    if (items.length === 0) return;
+
+    setQueue((prev) =>
+      prev.map((item) => (item.status === 'staged' ? { ...item, status: 'pending' } : item))
+    );
     startTransition(async () => {
-      for (let i = 0; i < items.length; i++) {
-        await runUploadForIndex(i, items[i].file, tag, items[i].description);
+      for (const { item, index } of items) {
+        await runUploadForIndex(index, item.file, tag, item.description);
       }
     });
   }
@@ -150,7 +169,7 @@ export function UploadMedia({ inspectionId }: { inspectionId: string }) {
     startTransition(() => runUploadForIndex(index, item.file, tag, item.description));
   }
 
-  const isStaged = queue.length > 0 && queue.every((item) => item.status === 'staged');
+  const stagedCount = queue.filter((item) => item.status === 'staged').length;
   const hasErrors = queue.some((item) => item.status === 'error');
   const allDone = queue.length > 0 && queue.every((item) => item.status === 'done');
 
@@ -181,9 +200,10 @@ export function UploadMedia({ inspectionId }: { inspectionId: string }) {
         accept="image/*,video/*"
         multiple
         onChange={handleFileChange}
-        disabled={isPending || (queue.length > 0 && !isStaged && !allDone && !hasErrors)}
+        disabled={isPending}
         className="text-sm text-gray-300"
       />
+      <p className="mt-1 text-xs text-gray-500">Choose multiple files or add more to this batch.</p>
 
       {queue.length > 0 && (
         <ul className="mt-3 flex flex-col gap-2">
@@ -217,18 +237,27 @@ export function UploadMedia({ inspectionId }: { inspectionId: string }) {
                       className="w-full px-2 py-1 rounded bg-white text-slate-900 placeholder-gray-500 focus:outline-none text-sm"
                     />
                   </label>
+                  <button
+                    type="button"
+                    onClick={() => removeQueueItem(i)}
+                    disabled={isPending}
+                    className="text-gray-300 hover:text-white disabled:opacity-60"
+                    aria-label={`Remove ${item.file.name} from upload batch`}
+                  >
+                    Remove
+                  </button>
                 </div>
               )}
               {item.status !== 'staged' && (
-              <div className="flex items-center justify-between text-gray-400">
-                <span className="truncate max-w-[70%]">{item.file.name}</span>
-                <span>
-                  {item.status === 'done' && <span className="text-green-400">Done</span>}
-                  {item.status === 'error' && <span className="text-red-400">Failed</span>}
-                  {(item.status === 'uploading' || item.status === 'retrying') &&
-                    `${item.progress}%`}
-                </span>
-              </div>
+                <div className="flex items-center justify-between text-gray-400">
+                  <span className="truncate max-w-[70%]">{item.file.name}</span>
+                  <span>
+                    {item.status === 'done' && <span className="text-green-400">Done</span>}
+                    {item.status === 'error' && <span className="text-red-400">Failed</span>}
+                    {(item.status === 'uploading' || item.status === 'retrying') &&
+                      `${item.progress}%`}
+                  </span>
+                </div>
               )}
               {(item.status === 'uploading' || item.status === 'retrying') && (
                 <div className="w-full bg-slate-700 rounded h-1.5 overflow-hidden mt-1">
@@ -251,26 +280,48 @@ export function UploadMedia({ inspectionId }: { inspectionId: string }) {
                   >
                     Try Again
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => removeQueueItem(i)}
+                    disabled={isPending}
+                    className="text-gray-300 hover:text-white disabled:opacity-60"
+                  >
+                    Remove
+                  </button>
                 </div>
+              )}
+              {item.status === 'done' && (
+                <button
+                  type="button"
+                  onClick={() => removeQueueItem(i)}
+                  disabled={isPending}
+                  className="mt-1 text-gray-400 hover:text-white disabled:opacity-60"
+                >
+                  Dismiss
+                </button>
               )}
             </li>
           ))}
         </ul>
       )}
 
-      {isStaged && (
+      {stagedCount > 0 && (
         <div className="mt-3 flex gap-2">
           <button
+            type="button"
             onClick={handleUpload}
+            disabled={isPending}
             className="px-3 py-1.5 rounded bg-blue-600 text-white text-sm hover:bg-blue-500"
           >
-            Upload {queue.length} {queue.length === 1 ? 'file' : 'files'}
+            Upload {stagedCount} {stagedCount === 1 ? 'file' : 'files'}
           </button>
           <button
-            onClick={() => replaceQueue([])}
-            className="px-3 py-1.5 rounded bg-slate-700 text-white text-sm hover:bg-slate-600"
+            type="button"
+            onClick={clearStagedItems}
+            disabled={isPending}
+            className="px-3 py-1.5 rounded bg-slate-700 text-white text-sm hover:bg-slate-600 disabled:opacity-60"
           >
-            Cancel
+            Clear staged
           </button>
         </div>
       )}

@@ -186,10 +186,9 @@ create policy "Inspectors can update own profile"
 -- calling PostgREST directly with a valid inspector session. Replaced below
 -- (after current_inspector_active() is defined, which the replacements
 -- depend on) with narrower select/insert/update policies — see that block
--- for the full explanation. No DELETE policy at all for inspectors: nothing
--- in the app deletes an inspection, and a completed report should never be
--- unilaterally erasable by the inspector who wrote it. Same reasoning
--- applies to inspection_media below.
+-- for the full explanation. Inspection rows remain non-deletable by
+-- inspectors; individual media on an in-progress inspection can be removed
+-- so a mistaken photo can be replaced.
 drop policy if exists "Inspectors manage own inspections" on public.inspections;
 drop policy if exists "Inspectors manage own inspection media" on public.inspection_media;
 
@@ -393,6 +392,20 @@ create policy "Inspectors update own in-progress inspection media"
     )
   );
 
+drop policy if exists "Inspectors delete own in-progress inspection media" on public.inspection_media;
+create policy "Inspectors delete own in-progress inspection media"
+  on public.inspection_media for delete
+  to authenticated
+  using (
+    public.current_inspector_active()
+    and exists (
+      select 1 from public.inspections
+      where inspections.id = inspection_media.inspection_id
+        and inspections.inspector_id = auth.uid()
+        and inspections.status = 'in_progress'
+    )
+  );
+
 drop policy if exists "Managers view all inspectors" on public.inspectors;
 create policy "Managers view all inspectors"
   on public.inspectors for select
@@ -532,6 +545,12 @@ create policy "Managers manage all inspection media"
   to authenticated
   using (public.is_manager())
   with check (public.is_manager());
+
+drop policy if exists "Managers delete all inspection media" on public.inspection_media;
+create policy "Managers delete all inspection media"
+  on public.inspection_media for delete
+  to authenticated
+  using (public.is_manager());
 
 -- Public "request an inspection" lead form on the homepage. No customer
 -- accounts — anon can only INSERT (submit a lead), never read back other

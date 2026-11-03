@@ -2,6 +2,7 @@
 
 import { randomUUID } from 'crypto';
 import {
+  BlobClient,
   BlobSASPermissions,
   SASProtocol,
   StorageSharedKeyCredential,
@@ -14,6 +15,7 @@ import { checkInspectionEditPermission } from './actions';
 
 const ACCOUNT_NAME = process.env.NEXT_PUBLIC_AZURE_STORAGE_ACCOUNT_NAME!;
 const CONTAINER_NAME = process.env.NEXT_PUBLIC_AZURE_STORAGE_CONTAINER_NAME!;
+const STORAGE_BASE_URL = `https://${ACCOUNT_NAME}.blob.core.windows.net/${CONTAINER_NAME}/`;
 
 const ALLOWED_TYPES = new Set([
   'image/jpeg',
@@ -89,6 +91,76 @@ export async function getUploadUrl(
 }
 
 export type RecordMediaResult = { ok: true } | { ok: false; error: string };
+
+export type RemoveMediaResult =
+  | { ok: true; warning?: string }
+  | { ok: false; error: string };
+
+export async function removeInspectionMedia(
+  mediaId: string,
+  inspectionId: string
+): Promise<RemoveMediaResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, error: 'Not authenticated.' };
+  }
+
+  const permission = await checkInspectionEditPermission(supabase, user.id, inspectionId);
+  if (!permission.ok) {
+    return { ok: false, error: permission.error };
+  }
+
+  const { data: media, error: lookupError } = await supabase
+    .from('inspection_media')
+    .select('file_url')
+    .eq('id', mediaId)
+    .eq('inspection_id', inspectionId)
+    .maybeSingle();
+
+  if (lookupError || !media) {
+    return { ok: false, error: 'Could not find that photo for this inspection.' };
+  }
+  if (
+    !media.file_url.startsWith(`${STORAGE_BASE_URL}${inspectionId}/`) ||
+    media.file_url.includes('?')
+  ) {
+    return { ok: false, error: "This photo is not stored in this inspection's media folder." };
+  }
+
+  const { data: deletedMedia, error: deleteError } = await supabase
+    .from('inspection_media')
+    .delete()
+    .eq('id', mediaId)
+    .eq('inspection_id', inspectionId)
+    .select('id')
+    .maybeSingle();
+
+  if (deleteError || !deletedMedia) {
+    return { ok: false, error: 'Could not remove the photo from this inspection.' };
+  }
+
+  revalidatePath(`/inspector/inspections/${inspectionId}`);
+  try {
+    const accountKey = await getAzureStorageAccountKey();
+    const credential = new StorageSharedKeyCredential(ACCOUNT_NAME, accountKey);
+    await new BlobClient(media.file_url, credential).deleteIfExists();
+  } catch (error) {
+    console.error(
+      'Photo was removed from the inspection, but its Azure file could not be deleted.',
+      error
+    );
+    return {
+      ok: true,
+      warning: 'Photo removed from the inspection, but its storage file could not be deleted.',
+    };
+  }
+
+  return { ok: true };
+}
 
 export async function recordInspectionMedia(
   inspectionId: string,
