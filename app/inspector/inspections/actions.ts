@@ -73,6 +73,33 @@ export async function createInspection(
     redirect('/inspector/login');
   }
 
+  const { data: currentInspector } = await supabase
+    .from('inspectors')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  const isManager = currentInspector?.role === 'manager';
+  const requestedInspectorId = String(formData.get('assigned_inspector_id') ?? '').trim();
+  let assignedInspectorId = user.id;
+
+  if (isManager) {
+    if (!requestedInspectorId) {
+      return { status: 'error', message: 'Please select an inspector.' };
+    }
+
+    const { data: assignedInspector } = await supabase
+      .from('inspectors')
+      .select('id')
+      .eq('id', requestedInspectorId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (!assignedInspector) {
+      return { status: 'error', message: 'Select an active inspector.' };
+    }
+    assignedInspectorId = assignedInspector.id;
+  }
+
   const customerName = String(formData.get('customer_name') ?? '').trim();
   const customerEmail = String(formData.get('customer_email') ?? '').trim();
   const vehicleVin = String(formData.get('vehicle_vin') ?? '').trim();
@@ -115,7 +142,7 @@ export async function createInspection(
   const { data: inspection, error: inspectionError } = await supabase
     .from('inspections')
     .insert({
-      inspector_id: user.id,
+      inspector_id: assignedInspectorId,
       customer_id: customerId,
       inspection_type: inspectionType || 'pre-purchase',
       vehicle_vin: vehicleVin || null,

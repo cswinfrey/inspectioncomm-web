@@ -338,6 +338,19 @@ create policy "Inspectors insert own inspections"
   to authenticated
   with check (inspector_id = auth.uid() and public.current_inspector_active());
 
+drop policy if exists "Managers assign new inspections" on public.inspections;
+create policy "Managers assign new inspections"
+  on public.inspections for insert
+  to authenticated
+  with check (
+    public.is_manager()
+    and exists (
+      select 1 from public.inspectors
+      where inspectors.id = inspections.inspector_id
+        and inspectors.is_active
+    )
+  );
+
 drop policy if exists "Inspectors update own in-progress inspections" on public.inspections;
 create policy "Inspectors update own in-progress inspections"
   on public.inspections for update

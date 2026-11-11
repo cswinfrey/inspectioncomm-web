@@ -17,6 +17,7 @@ const inputClass =
   'px-4 py-3 rounded bg-white text-slate-900 placeholder-gray-500 focus:outline-none w-full';
 
 type Customer = { name: string; email: string };
+type InspectorOption = { id: string; name: string };
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -32,7 +33,15 @@ function SubmitButton() {
   );
 }
 
-export function NewInspectionForm({ customers }: { customers: Customer[] }) {
+export function NewInspectionForm({
+  customers,
+  inspectors,
+  isManager,
+}: {
+  customers: Customer[];
+  inspectors: InspectorOption[];
+  isManager: boolean;
+}) {
   const [state, formAction] = useActionState(createInspection, initialState);
   const [inspectionType, setInspectionType] = useState<string>(INSPECTION_TYPES[0].value);
 
@@ -216,6 +225,26 @@ export function NewInspectionForm({ customers }: { customers: Customer[] }) {
 
           <fieldset className="flex flex-col gap-3">
             <legend className="text-gray-300 font-semibold mb-1">Inspection</legend>
+            {isManager && (
+              <label className="text-sm text-gray-300 flex flex-col gap-2">
+                Assign to inspector
+                <select
+                  name="assigned_inspector_id"
+                  required
+                  defaultValue=""
+                  className={inputClass}
+                >
+                  <option value="" disabled>
+                    Select an inspector
+                  </option>
+                  {inspectors.map((inspector) => (
+                    <option key={inspector.id} value={inspector.id}>
+                      {inspector.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <input
               type="date"
               name="inspection_date"
