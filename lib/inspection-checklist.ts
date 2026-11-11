@@ -28,10 +28,10 @@ export type ObdScanResult = (typeof OBD_SCAN_OPTIONS)[number];
 // tires.condition values are kept on the type so reports saved before
 // per-tire fields existed still display.
 export const TIRE_POSITIONS = [
-  { key: 'front_left', label: 'Front left' },
-  { key: 'front_right', label: 'Front right' },
-  { key: 'rear_left', label: 'Rear left' },
-  { key: 'rear_right', label: 'Rear right' },
+  { key: 'front_left', label: 'Front driver' },
+  { key: 'front_right', label: 'Front passenger' },
+  { key: 'rear_left', label: 'Rear driver' },
+  { key: 'rear_right', label: 'Rear passenger' },
 ] as const;
 export type TirePosition = (typeof TIRE_POSITIONS)[number]['key'];
 export type TireStatus = { tread?: string; condition?: Condition };
